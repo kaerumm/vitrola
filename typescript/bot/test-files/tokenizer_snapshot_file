@@ -1,0 +1,15 @@
+command
+command strOrLiteral
+(command strOrLiteral)
+"string"
+'string'
+'string still string <>!=|&*/+-;&&||==!=>=<="'
+"string still string <>!=|&*/+-;&&||==!=>=<='"
+command;command
+command strOrLiteral;command strOrLiteral
+command && command
+command strOrLiteral && command strOrLiteral
+command || command
+command strOrLiteral || command strOrLiteral
+command | command
+command strOrLiteral | command strOrLiteral

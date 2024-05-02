@@ -1,0 +1,12 @@
+Precedence and Associativity
+
+Name | Operators | Associativity
+Connectives | "&&" "||"  "|" | ";" | Left
+
+Using EBNF
+
+expression : connective ;
+connective : unary (("&&" | "||" | "|") unary)* ;
+primary : command | grouping ;
+command : STRING* ;
+grouping : "("expression")" ;

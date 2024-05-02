@@ -1,0 +1,26 @@
+{
+    "name": "discord-bot",
+    "module": "index.ts",
+    "type": "module",
+    "devDependencies": {
+        "@jest/globals": "^29.7.0",
+        "@types/bun": "latest",
+        "@types/jest": "^29.5.12",
+        "jest": "^29.7.0",
+        "prettier": "3.2.5",
+        "ts-jest": "^29.1.2",
+        "typescript": "^5.4.5"
+    },
+    "scripts": {
+        "start": "bun --hot src/index.ts",
+        "test": "bun test"
+    },
+    "peerDependencies": {
+        "typescript": "^5.4.0"
+    },
+    "dependencies": {
+        "discord.js": "^14.14.1",
+        "commons": "workspace:typescript/commons",
+        "testing": "workspace:typescript/testing"
+    }
+}
