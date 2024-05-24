@@ -5,6 +5,9 @@ import { ConsoleLogger } from 'commons/lib/log'
 import { onProcessExit } from 'commons/lib/utils/exit'
 import { Results } from 'commons/lib/utils/result'
 import { AsyncDisposableStack } from 'commons/lib/utils/disposable'
+import { ConfigurationManager } from './configuration/configuration_manager'
+import { PingCommand } from './command/commands/ping'
+import { Commander } from './command/commander'
 
 const TOKEN_ENV_VAR = 'DISCORD_TOKEN'
 const TOKEN_DEV_ENV_VAR = 'DISCORD_DEV_TOKEN'
@@ -32,11 +35,28 @@ async function start() {
         process.exit(1)
     }
 
+    const defaultAliasTree = await localizationManager.getSubmodule(
+        'en_us',
+        'alias_tree'
+    )
+    if (Results.isErr(defaultAliasTree)) {
+        logger.error(defaultAliasTree)
+        process.exit(1)
+    }
+
     const bot = await new BotInitializer().initialize(
         {
             logger: new ConsoleLogger('Bot'),
             localizationManager,
-            commandManager: new CommandManager({}, { commands: [] }),
+            commander: new Commander(),
+            commandManager: new CommandManager({
+                commands: [
+                    new PingCommand({
+                        logger: new ConsoleLogger('PingCommand'),
+                    }),
+                ],
+            }),
+            configurationManager: new ConfigurationManager(),
         },
         {
             token,
@@ -48,7 +68,7 @@ async function start() {
     }
     disposeStack.use(bot)
     await onProcessExit()
-    console.log('Exit')
+    logger.info('Exiting the process')
     process.exit(1)
 }
 

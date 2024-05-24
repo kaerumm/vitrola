@@ -1,6 +1,6 @@
 import type { locales } from '../../locales'
 import type { modules } from '../../locales/base'
-import type { Equal } from '../types/utils'
+import type { Equal } from 'commons/lib/types/utils'
 
 /**
  * This type checks if the locales break the two following constraints

@@ -6,10 +6,15 @@ export const modules = {
     alias_tree,
 } satisfies LocaleModule
 
-interface AliasNode {
+export type CommandAliasNode = Required<Pick<AliasNode, 'commandIdentifier'>> &
+    AliasNode
+
+export interface AliasNode {
     commandIdentifier?: string
     children?: Record<string, AliasNode>
 }
+
+export type AliasTree = Record<string, AliasNode>
 
 /**
  * A localization resource to define command aliases, this allows the locale en_us to point the string 'play' to the command named 'play'
@@ -17,7 +22,7 @@ interface AliasNode {
  */
 export type AliasTreeModule = {
     kind: 'alias_tree'
-    aliases: Record<string, AliasNode>
+    aliases: AliasTree
 }
 
 export type LocaleEntry<Args extends any[]> =

@@ -23,6 +23,13 @@ export class Cursor<T> {
         return value as Option<T>
     }
 
+    seek(position: number): void {
+        this._position = position
+        if (position >= this.array.length) {
+            this._position = this.array.length
+        }
+    }
+
     /**
      * Returns the current value and advances the cursor, or returns null if the cursor has reached the end
      * of the backing array

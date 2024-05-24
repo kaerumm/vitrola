@@ -1,7 +1,11 @@
 {
-    "name": "monorepo",
-    "private": true,
-    "workspaces": [
-        "typescript/*"
-    ]
+  "name": "monorepo",
+  "private": true,
+  "workspaces": [
+    "typescript/*"
+  ],
+  "dependencies": {
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.20"
+  }
 }

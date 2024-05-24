@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test'
-import { Results } from './result'
+import { Result, Results } from './result'
 import { Options } from './option'
 
 test('Result', function () {
@@ -23,4 +23,9 @@ test('Result', function () {
     expect(Options.isNone(Results.optionErr(Results.ok(0)))).toEqual(true)
     expect(Options.isSome(Results.optionOk(Results.error(0)))).toEqual(false)
     expect(Options.isNone(Results.optionErr(Results.error(0)))).toEqual(false)
+    expect(
+        Results.mapError(Results.error(null), function () {
+            return true
+        })
+    ).toEqual({ error: true })
 })

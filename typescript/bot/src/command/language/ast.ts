@@ -1,6 +1,8 @@
-export interface ASTNode {
-    expression: ASTExpression
-    tokenPosition: number
+import { Range } from 'commons/lib/utils/range'
+
+export interface ASTNode<Expression extends ASTExpression> {
+    expression: Expression
+    tokenRange: Range
 }
 
 export type ASTExpression =
@@ -29,18 +31,18 @@ export type ASTBinaryOperator = ASTBinaryAnd | ASTBinaryOr
 export interface ASTBinary {
     kind: 'binary'
     operator: ASTBinaryOperator
-    lhs: ASTExpression
-    rhs: ASTExpression
+    lhs: ASTNode<ASTExpression>
+    rhs: ASTNode<ASTExpression>
 }
 
 export interface ASTGroup {
     kind: 'group'
-    expression: ASTExpression
+    node: ASTNode<ASTExpression>
 }
 
 export interface ASTCommand {
     kind: 'command'
-    arguments: ASTString[]
+    arguments: ASTNode<ASTString>[]
 }
 
 export interface ASTUnit {
@@ -49,7 +51,7 @@ export interface ASTUnit {
 
 export interface ASTBlock {
     kind: 'block'
-    expressions: ASTExpression[]
+    nodes: ASTNode<ASTExpression>[]
 }
 
 export function ASTString(value: string): ASTString {
@@ -60,8 +62,8 @@ export function ASTString(value: string): ASTString {
 }
 
 export function ASTBinary(
-    lhs: ASTExpression,
-    rhs: ASTExpression,
+    lhs: ASTNode<ASTExpression>,
+    rhs: ASTNode<ASTExpression>,
     operator: ASTBinaryOperator
 ): ASTBinary {
     return {
@@ -72,14 +74,14 @@ export function ASTBinary(
     }
 }
 
-export function ASTGroup(expression: ASTExpression): ASTGroup {
+export function ASTGroup(expression: ASTNode<ASTExpression>): ASTGroup {
     return {
         kind: 'group',
-        expression,
+        node: expression,
     }
 }
 
-export function ASTCommand(literals: ASTString[]): ASTCommand {
+export function ASTCommand(literals: ASTNode<ASTString>[]): ASTCommand {
     return {
         kind: 'command',
         arguments: literals,
@@ -88,9 +90,19 @@ export function ASTCommand(literals: ASTString[]): ASTCommand {
 
 export const ASTUnit: Readonly<ASTUnit> = { kind: 'unit' }
 
-export function ASTBlock(expressions: ASTExpression[]): ASTBlock {
+export function ASTBlock(expressions: ASTNode<ASTExpression>[]): ASTBlock {
     return {
         kind: 'block',
-        expressions,
+        nodes: expressions,
+    }
+}
+
+export function ASTNode<Expression extends ASTExpression>(
+    expression: Expression,
+    tokenRange: Range
+): ASTNode<Expression> {
+    return {
+        expression,
+        tokenRange,
     }
 }

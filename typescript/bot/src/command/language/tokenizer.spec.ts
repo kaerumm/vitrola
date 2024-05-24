@@ -4,18 +4,18 @@ import * as fs from 'fs'
 import * as path from 'path'
 import {
     CharacterCodes,
+    isSymbolAllowedInUnquotedString,
     MAX_UNICODE_CODEPOINT,
     lineBreakers,
     reservedCharacters,
     whitespaces,
+    unquotedStringAllowed,
 } from './character'
 import { range } from 'commons/lib/utils/range'
 import { PseudoRandomNumberGenerator, fuzzyTest } from 'testing/lib/fuzz/fuzz'
-import { Results } from 'commons/lib/utils/result'
+import { ErrorResult, Results, ValueResult } from 'commons/lib/utils/result'
 import { Option } from 'commons/lib/utils/option'
-import { Span } from './tokens'
 
-console.log(path.resolve('./test-files/tokenizer_snapshot_file'))
 const snapshot_file = fs.readFileSync(
     path.resolve('./test-files/tokenizer_snapshot_file'),
     'utf-8'
@@ -67,21 +67,38 @@ describe('Tokenizer', function () {
                 ['=', { token: { kind: 'equal' } }],
                 ['>', { token: { kind: 'greater' } }],
                 ['<', { token: { kind: 'less' } }],
-                ['!=', { token: { kind: 'bang_equal' } }],
-                ['==', { token: { kind: 'equal_equal' } }],
-                ['>=', { token: { kind: 'greater_equal' } }],
-                ['<=', { token: { kind: 'less_equal' } }],
-                ['&&', { token: { kind: 'and' } }],
-                ['||', { token: { kind: 'or' } }],
+                [
+                    '!=',
+                    { sourcePosition: [0, 2], token: { kind: 'bang_equal' } },
+                ],
+                [
+                    '==',
+                    { sourcePosition: [0, 2], token: { kind: 'equal_equal' } },
+                ],
+                [
+                    '>=',
+                    {
+                        sourcePosition: [0, 2],
+                        token: { kind: 'greater_equal' },
+                    },
+                ],
+                [
+                    '<=',
+                    { sourcePosition: [0, 2], token: { kind: 'less_equal' } },
+                ],
+                ['&&', { sourcePosition: [0, 2], token: { kind: 'and' } }],
+                ['||', { sourcePosition: [0, 2], token: { kind: 'or' } }],
                 ['|', { token: { kind: 'pipe' } }],
             ] as const
             for (const pair of pairs) {
-                expect(Tokenizer.tokenize(pair[0])).toEqual([
-                    {
-                        ...pair[1],
-                        position: 0,
-                    },
-                ])
+                expect(Tokenizer.tokenize(pair[0])).toMatchObject({
+                    spans: [
+                        {
+                            sourcePosition: [0, 1],
+                            ...pair[1],
+                        },
+                    ],
+                })
             }
         })
 
@@ -90,7 +107,7 @@ describe('Tokenizer', function () {
                 String.fromCodePoint(codePoint)
             )
             for (const space of whitespace) {
-                expect(Tokenizer.tokenize(space)).toStrictEqual([])
+                expect(Tokenizer.tokenize(space)).toMatchObject({ spans: [] })
             }
         })
 
@@ -103,12 +120,14 @@ describe('Tokenizer', function () {
                 `${String.fromCodePoint(CharacterCodes.CarriageReturn)}${String.fromCodePoint(CharacterCodes.LineFeed)}`
             )
             for (const breaker of breakers) {
-                expect(Tokenizer.tokenize(breaker)).toStrictEqual([
-                    {
-                        token: { kind: 'semicolon' },
-                        position: 0,
-                    },
-                ])
+                expect(Tokenizer.tokenize(breaker)).toMatchObject({
+                    spans: [
+                        {
+                            token: { kind: 'semicolon' },
+                            sourcePosition: [0, breaker.length],
+                        },
+                    ],
+                })
             }
         })
 
@@ -123,48 +142,108 @@ describe('Tokenizer', function () {
                         continue
                     }
                     expect(
-                        Tokenizer.tokenize(`${delimiter}${char}${delimiter}`)
-                    ).toEqual([
-                        { token: { kind: 'string', value: char }, position: 0 },
-                    ])
+                        (
+                            Tokenizer.tokenize(
+                                `${delimiter}${char}${delimiter}`
+                            ) as ValueResult<any>
+                        ).spans[0]
+                    ).toEqual({
+                        token: { kind: 'string', value: char },
+                        sourcePosition: [0, delimiter.length * 2 + char.length],
+                    })
                 }
             }
             // Unfinished strings must error
-            expect(Tokenizer.tokenize(`"""`)).toEqual({
-                error: [{ kind: 'unfinished_string', position: 2 }],
-            })
-            expect(Tokenizer.tokenize(`'''`)).toEqual({
-                error: [{ kind: 'unfinished_string', position: 2 }],
-            })
+            expect(
+                (Tokenizer.tokenize(`"""`) as ErrorResult<any>).error.errors
+            ).toEqual([
+                {
+                    kind: 'unfinished_string',
+                    delimiter: `"`,
+                    range: [2, 3],
+                },
+            ])
+            expect(
+                (Tokenizer.tokenize(`'''`) as ErrorResult<any>).error.errors
+            ).toEqual([
+                {
+                    kind: 'unfinished_string',
+                    delimiter: `'`,
+                    range: [2, 3],
+                },
+            ])
         })
 
         test('Unquoted string', function () {
             for (const whitespace of whitespaces) {
                 const character = String.fromCodePoint(whitespace)
                 // Must terminate unquoted string
-                expect(Tokenizer.tokenize(`word${character}`)).toStrictEqual([
-                    {
-                        token: {
-                            kind: 'string',
-                            value: 'word',
-                        },
-                        position: 0,
+                expect(
+                    (Tokenizer.tokenize(`word${character}`) as ValueResult<any>)
+                        .spans
+                ).toContainEqual({
+                    token: {
+                        kind: 'string',
+                        value: 'word',
                     },
-                ])
+                    sourcePosition: [0, 4],
+                })
                 // Must not be included if it comes before the word
-                expect(Tokenizer.tokenize(`${character}word`)).toEqual([
-                    {
-                        token: {
-                            kind: 'string',
-                            value: 'word',
-                        },
-                        position: 1,
+                expect(
+                    (Tokenizer.tokenize(`${character}word`) as ValueResult<any>)
+                        .spans
+                ).toContainEqual({
+                    token: {
+                        kind: 'string',
+                        value: 'word',
                     },
-                ])
+                    sourcePosition: [1, 5],
+                })
+            }
+            for (const allowedSymbol of unquotedStringAllowed) {
+                const character = String.fromCodePoint(allowedSymbol)
+                // Is allowed to start unquoted strings as long as there eventually is an alpha character (currently alpha numeric)
+                const starting = `${''.padStart(3, character)}word`
+                expect(
+                    (Tokenizer.tokenize(starting) as ValueResult<any>).spans
+                ).toContainEqual({
+                    token: {
+                        kind: 'string',
+                        value: starting,
+                    },
+                    sourcePosition: [0, 7],
+                })
+                // Is allowed at the end of unquoted strings
+                const ending = `word${''.padStart(3, character)}`
+                expect(
+                    (Tokenizer.tokenize(ending) as ValueResult<any>).spans
+                ).toContainEqual({
+                    token: {
+                        kind: 'string',
+                        value: ending,
+                    },
+                    sourcePosition: [0, 7],
+                })
+                // Is allowed withing unquoted strings
+                const within = `word${''.padStart(3, character)}w`
+                expect(
+                    (Tokenizer.tokenize(within) as ValueResult<any>).spans
+                ).toContainEqual({
+                    token: {
+                        kind: 'string',
+                        value: within,
+                    },
+                    sourcePosition: [0, 8],
+                })
             }
             for (const specialCharacter of [
                 ...lineBreakers,
-                ...reservedCharacters,
+                ...reservedCharacters.filter(
+                    (c) =>
+                        !isSymbolAllowedInUnquotedString(
+                            String.fromCodePoint(c)
+                        )
+                ),
             ]) {
                 const delimiters = [`\'`, `\"`]
                 const character = String.fromCodePoint(specialCharacter)
@@ -173,22 +252,26 @@ describe('Tokenizer', function () {
                 }
                 // Must terminate unquoted string
                 expect(
-                    (Tokenizer.tokenize(`word${character}`) as Span[])[0]
-                ).toStrictEqual({
+                    (Tokenizer.tokenize(`word${character}`) as ValueResult<any>)
+                        .spans
+                ).toContainEqual({
                     token: {
                         kind: 'string',
                         value: 'word',
                     },
-                    position: 0,
+                    sourcePosition: [0, 4],
                 })
                 // Must not be included if it comes before the word
                 expect(
-                    (Tokenizer.tokenize(`${character}word`) as Span[]).find(
-                        (s) =>
-                            s.token.kind === 'string' &&
-                            s.token.value === 'word'
-                    )
-                ).toBeTruthy()
+                    (Tokenizer.tokenize(`${character}word`) as ValueResult<any>)
+                        .spans
+                ).toContainEqual({
+                    token: {
+                        kind: 'string',
+                        value: 'word',
+                    },
+                    sourcePosition: [1, 5],
+                })
             }
         })
     })

@@ -47,3 +47,11 @@ export function fuzzyTest<T>(
         return Results.error({ seed, options, error })
     }
 }
+
+export function randomNumber(
+    prng: PseudoRandomNumberGenerator,
+    from: number,
+    to: number
+): number {
+    return from + prng() * (to - from)
+}

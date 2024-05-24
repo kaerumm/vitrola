@@ -2,12 +2,13 @@ import { describe, expect, test } from 'bun:test'
 import { Parser } from './parser'
 import { Tokenizer } from './tokenizer'
 import { Span, Token } from './tokens'
-import { Results } from 'commons/lib/utils/result'
+import { Results, ValueResult } from 'commons/lib/utils/result'
 import {
     ASTBinary,
     ASTBlock,
     ASTCommand,
     ASTGroup,
+    ASTNode,
     ASTString,
     ASTUnit,
 } from './ast'
@@ -15,107 +16,182 @@ import {
 describe('Parser', function () {
     test('Command expressions', function () {
         // Command with zero arguments
-        let spans = Tokenizer.tokenize('command') as Span<Token>[]
-        expect(Parser.parse(spans)).toEqual({
-            expression: ASTBlock([ASTCommand([ASTString('command')])]),
-            tokenPosition: 0,
-        })
-        // Command with one argument
-        spans = Tokenizer.tokenize('command argument') as Span<Token>[]
+        let spans = (Tokenizer.tokenize('command') as ValueResult<any>).spans
         expect(Parser.parse(spans)).toEqual({
             expression: ASTBlock([
-                ASTCommand([ASTString('command'), ASTString('argument')]),
-            ]),
-            tokenPosition: 0,
-        })
-        // Command with many arguments
-        spans = Tokenizer.tokenize('command 0 1 2 3 4 5') as Span<Token>[]
-        expect(Parser.parse(spans)).toEqual({
-            expression: ASTBlock([
-                ASTCommand(
-                    [ASTString('command')].concat(
-                        '0 1 2 3 4 5'.split(' ').map((s) => ASTString(s))
-                    )
+                ASTNode(
+                    ASTCommand([ASTNode(ASTString('command'), [0, 0])]),
+                    [0, 0]
                 ),
             ]),
-            tokenPosition: 0,
+            tokenRange: [0, 0],
+        })
+        // Command with one argument
+        spans = (Tokenizer.tokenize('command argument') as ValueResult<any>)
+            .spans
+        expect(Parser.parse(spans)).toEqual({
+            expression: ASTBlock([
+                ASTNode(
+                    ASTCommand([
+                        ASTNode(ASTString('command'), [0, 0]),
+                        ASTNode(ASTString('argument'), [1, 1]),
+                    ]),
+                    [0, 1]
+                ),
+            ]),
+            tokenRange: [0, 1],
+        })
+        // Command with many arguments
+        spans = (Tokenizer.tokenize('command 0 1 2 3 4 5') as ValueResult<any>)
+            .spans
+        expect(Parser.parse(spans)).toEqual({
+            expression: ASTBlock([
+                ASTNode(
+                    ASTCommand(
+                        [ASTNode(ASTString('command'), [0, 0])].concat(
+                            '0 1 2 3 4 5'
+                                .split(' ')
+                                .map((s, i) =>
+                                    ASTNode(ASTString(s), [i + 1, i + 1])
+                                )
+                        )
+                    ),
+                    [0, 6]
+                ),
+            ]),
+            tokenRange: [0, 6],
         })
     })
 
     test('List expressions', function () {
-        let spans = Tokenizer.tokenize(';command') as Span<Token>[]
+        let spans = (Tokenizer.tokenize(';command') as ValueResult<any>).spans
         expect(Parser.parse(spans)).toEqual({
-            expression: ASTBlock([ASTCommand([ASTString('command')])]),
-            tokenPosition: 0,
+            expression: ASTBlock([
+                ASTNode(
+                    ASTCommand([ASTNode(ASTString('command'), [1, 1])]),
+                    [1, 1]
+                ),
+            ]),
+            tokenRange: [0, 1],
         })
     })
 
     test('Group expressions', function () {
-        let spans = Tokenizer.tokenize('(command)') as Span<Token>[]
+        let spans = (Tokenizer.tokenize('(command)') as ValueResult<any>).spans
         expect(Parser.parse(spans)).toEqual({
             expression: ASTBlock([
-                ASTGroup(ASTCommand([ASTString('command')])),
+                ASTNode(
+                    ASTGroup(
+                        ASTNode(
+                            ASTCommand([ASTNode(ASTString('command'), [1, 1])]),
+                            [1, 1]
+                        )
+                    ),
+                    [0, 2]
+                ),
             ]),
-            tokenPosition: 0,
+            tokenRange: [0, 2],
         })
-        spans = Tokenizer.tokenize('()') as Span<Token>[]
+        spans = (Tokenizer.tokenize('()') as ValueResult<any>).spans
         expect(Parser.parse(spans)).toEqual({
-            expression: ASTBlock([ASTGroup(ASTUnit)]),
-            tokenPosition: 0,
+            expression: ASTBlock([
+                ASTNode(ASTGroup(ASTNode(ASTUnit, [0, 1])), [0, 1]),
+            ]),
+            tokenRange: [0, 1],
         })
         // A group expression must be closed
-        spans = Tokenizer.tokenize('(') as Span<Token>[]
+        spans = (Tokenizer.tokenize('(') as ValueResult<any>).spans
         expect(Parser.parse(spans)).toEqual(
-            Results.error([{ kind: 'expected_group_closer', tokenPosition: 1 }])
+            Results.error([
+                {
+                    groupToken: { kind: 'left_paren' },
+                    kind: 'expected_group_closer',
+                    range: [0, 0],
+                },
+            ])
         )
-        spans = Tokenizer.tokenize('(command') as Span<Token>[]
+        spans = (Tokenizer.tokenize('(command') as ValueResult<any>).spans
         expect(Parser.parse(spans)).toEqual(
-            Results.error([{ kind: 'expected_group_closer', tokenPosition: 2 }])
+            Results.error([
+                {
+                    groupToken: { kind: 'left_paren' },
+                    kind: 'expected_group_closer',
+                    range: [0, 1],
+                },
+            ])
         )
-        spans = Tokenizer.tokenize(')') as Span<Token>[]
+        spans = (Tokenizer.tokenize(')') as ValueResult<any>).spans
         expect(Parser.parse(spans)).toEqual(
-            Results.error([{ kind: 'unexpected_token', tokenPosition: 0 }])
+            Results.error([
+                {
+                    kind: 'unexpected_token',
+                    token: { kind: 'right_paren' },
+                    range: [0, 0],
+                },
+            ])
         )
     })
 
     test('Connective expressions', function () {
-        let spans = Tokenizer.tokenize('command && command') as Span<Token>[]
+        let spans = (
+            Tokenizer.tokenize('command && command') as ValueResult<any>
+        ).spans
         expect(Parser.parse(spans)).toEqual({
             expression: ASTBlock([
-                ASTBinary(
-                    ASTCommand([ASTString('command')]),
-                    ASTCommand([ASTString('command')]),
-                    { kind: 'and' }
+                ASTNode(
+                    ASTBinary(
+                        ASTNode(
+                            ASTCommand([ASTNode(ASTString('command'), [0, 0])]),
+                            [0, 0]
+                        ),
+                        ASTNode(
+                            ASTCommand([ASTNode(ASTString('command'), [2, 2])]),
+                            [2, 2]
+                        ),
+                        { kind: 'and' }
+                    ),
+                    [0, 2]
                 ),
             ]),
-            tokenPosition: 0,
+            tokenRange: [0, 2],
         })
-        spans = Tokenizer.tokenize('command || command') as Span<Token>[]
+        spans = (Tokenizer.tokenize('command || command') as ValueResult<any>)
+            .spans
         expect(Parser.parse(spans)).toEqual({
             expression: ASTBlock([
-                ASTBinary(
-                    ASTCommand([ASTString('command')]),
-                    ASTCommand([ASTString('command')]),
-                    { kind: 'or' }
+                ASTNode(
+                    ASTBinary(
+                        ASTNode(
+                            ASTCommand([ASTNode(ASTString('command'), [0, 0])]),
+                            [0, 0]
+                        ),
+                        ASTNode(
+                            ASTCommand([ASTNode(ASTString('command'), [2, 2])]),
+                            [2, 2]
+                        ),
+                        { kind: 'or' }
+                    ),
+                    [0, 2]
                 ),
             ]),
-            tokenPosition: 0,
+            tokenRange: [0, 2],
         })
-        spans = Tokenizer.tokenize('command ||') as Span<Token>[]
+        spans = (Tokenizer.tokenize('command ||') as ValueResult<any>).spans
         expect(Parser.parse(spans)).toEqual({
             error: [
                 {
                     kind: 'binary_expression_rhs_missing',
-                    tokenPosition: 0,
+                    range: [0, 1],
                 },
             ],
         })
-        spans = Tokenizer.tokenize('command || )') as Span<Token>[]
+        spans = (Tokenizer.tokenize('command || )') as ValueResult<any>).spans
         expect(Parser.parse(spans)).toEqual({
             error: [
                 {
                     kind: 'unexpected_token',
-                    tokenPosition: 2,
+                    token: { kind: 'right_paren' },
+                    range: [2, 2],
                 },
             ],
         })

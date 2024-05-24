@@ -1,6 +1,5 @@
 {
     "name": "testing",
-    "module": "lib.ts",
     "type": "module",
     "devDependencies": {
         "@types/bun": "latest"

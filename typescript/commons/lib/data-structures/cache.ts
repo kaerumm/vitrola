@@ -1,5 +1,6 @@
 import { seconds } from 'commons/lib/utils/time'
 import { ObjectPool } from './object_pool'
+import { Option } from '../utils/option'
 
 interface CacheNode<T> {
     timestamp: number
@@ -31,13 +32,14 @@ const defaultCacheOptions: CacheOptions = {
  */
 export class GenericCache<T> implements Disposable {
     private options: CacheOptions
-    private interval: Timer | null
+    private interval: Option<Timer>
     private cacheNodeObjectPool = new ObjectPool<CacheNode<T>>(
         () => ({ value: undefined, timestamp: 0 }),
-        (node) => {
-            node.value = undefined
-            node.timestamp = 0
-        }
+        (object) => {
+            object.value = undefined
+            object.timestamp = 0
+        },
+        null
     )
     // Map maintains insertion order, we exploit that to keep older entries at the start of the Map
     // such that when we iterate over it we iterate starting from the oldest to the youngest
@@ -53,7 +55,7 @@ export class GenericCache<T> implements Disposable {
 
     private clear() {
         const now = Date.now()
-        const nodesToRemove = []
+        const nodesToRemove = [] as [string, CacheNode<T>][]
         for (const entry of this.values.entries()) {
             if (now < entry[1].timestamp) {
                 break

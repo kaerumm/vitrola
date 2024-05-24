@@ -3,22 +3,41 @@ import { Results, type Result } from 'commons/lib/utils/result'
 import type { Option } from 'commons/lib/utils/option'
 import {
     CharacterCodes,
+    isSymbolAllowedInUnquotedString,
     isSpecialCharacter,
     isUnicodeLineBreak,
     isUnicodeWhitespace,
+    isReservedCharacter,
 } from './character'
-import type { Span, Token, SyntaxError } from './tokens'
+import type { Span, Token, SyntaxError, UnfinishedString } from './tokens'
+import { DSLError } from '../commander'
+import { LocalizationManager } from '../../localization/localization_manager'
+import { binarySearchClosest } from 'commons/lib/utils/array'
+import { unreachable } from 'commons/lib/utils/error'
 
 export class Tokenizer {
-    static tokenize(source: string): Result<Span<Token>[], SyntaxError[]> {
+    static tokenize(
+        source: string
+    ): Result<
+        { spans: Span<Token>[]; newlines: number[] },
+        { errors: SyntaxError[]; newlines: number[] }
+    > {
         const cursor = new Cursor<string>(source)
-        const spans: Span<Token>[] = []
+        const spans: Span[] = []
+        const newlines: number[] = [0]
         const errors: SyntaxError[] = []
         let character: Option<string>
         while ((character = cursor.next())) {
             let token: Option<Result<Token, SyntaxError>> = null
             let position = cursor.position - 1
             switch (true) {
+                case isSymbolAllowedInUnquotedString(character) &&
+                    isEventuallyFollowedByUnicodeAlpha(cursor):
+                    token = {
+                        kind: 'string',
+                        value: tokenizeUnquotedString(cursor, source, position),
+                    }
+                    break
                 case character === '(':
                     token = { kind: 'left_paren' }
                     break
@@ -101,6 +120,7 @@ export class Tokenizer {
                     // Ignore the input
                     break
                 case isUnicodeLineBreak(character):
+                    newlines.push(position)
                     consumeLineTerminator(character as string, cursor)
                     token = {
                         kind: 'semicolon',
@@ -123,12 +143,144 @@ export class Tokenizer {
                 errors.push(token.error)
                 continue
             }
-            spans.push({ token, position })
+            spans.push({
+                token,
+                sourcePosition: [position, cursor.position],
+            })
         }
         if (errors.length > 0) {
-            return { error: errors }
+            return Results.error({ errors, newlines })
         }
-        return spans
+        return { spans, newlines }
+    }
+
+    private static mapUnfinishedString(
+        unfinishedString: UnfinishedString
+    ): Pick<DSLError, 'errorMessage' | 'hint'> {
+        return {
+            errorMessage: LocalizationManager.lazy(
+                'interpreter',
+                'tokenizer_unfinished_string',
+                undefined
+            ),
+            hint: LocalizationManager.lazy(
+                'interpreter',
+                'tokenizer_unfinished_string_hint',
+                [unfinishedString.delimiter]
+            ),
+        }
+    }
+
+    static columnLineSourceForTokenRange(
+        start: number,
+        end: number,
+        newlines: number[],
+        source: string
+    ): Pick<DSLError, 'column' | 'line' | 'sourceLine'> {
+        const lineIndex =
+            binarySearchClosest(newlines, start, 'low') ??
+            unreachable('There should always be atleast one newline')
+        return {
+            line: lineIndex + 1,
+            column: start - newlines[lineIndex] + 1,
+            sourceLine: source.slice(start, end),
+        }
+    }
+
+    static intoDSLError(
+        source: string,
+        error: SyntaxError,
+        newlines: number[]
+    ): DSLError {
+        let partialDSLError: Pick<DSLError, 'errorMessage' | 'hint'>
+        switch (error.kind) {
+            case 'unfinished_string':
+                partialDSLError = this.mapUnfinishedString(error)
+                break
+        }
+        return {
+            kind: 'command_failed',
+            ...this.columnLineSourceForTokenRange(
+                error.range[0],
+                error.range[1],
+                newlines,
+                source
+            ),
+            ...partialDSLError,
+        }
+    }
+
+    static tokenIntoString(token: Token): string {
+        switch (token.kind) {
+            case 'string':
+                return token.value
+            case 'left_paren':
+                return '('
+            case 'right_paren':
+                return ')'
+            case 'minus':
+                return '-'
+            case 'plus':
+                return '+'
+            case 'semicolon':
+                return ';'
+            case 'forward_slash':
+                return '/'
+            case 'star':
+                return '*'
+            case 'bang':
+                return '!'
+            case 'bang_equal':
+                return '!='
+            case 'equal':
+                return '='
+            case 'equal_equal':
+                return '=='
+            case 'greater':
+                return '>'
+            case 'greater_equal':
+                return '>='
+            case 'less':
+                return '<'
+            case 'less_equal':
+                return '<='
+            case 'pipe':
+                return '|'
+            case 'and':
+                return '&&'
+            case 'or':
+                return '||'
+            case 'invalid_token':
+                return '<?invalid_token?>'
+        }
+    }
+
+    static pairFor(token: Token): Token {
+        switch (token.kind) {
+            case 'left_paren':
+                return { kind: 'right_paren' }
+            case 'right_paren':
+                return { kind: 'left_paren' }
+            case 'invalid_token':
+            case 'string':
+            case 'minus':
+            case 'plus':
+            case 'semicolon':
+            case 'forward_slash':
+            case 'star':
+            case 'bang':
+            case 'bang_equal':
+            case 'equal':
+            case 'equal_equal':
+            case 'greater':
+            case 'greater_equal':
+            case 'less':
+            case 'less_equal':
+            case 'pipe':
+            case 'and':
+            case 'or':
+                return { kind: 'invalid_token' }
+        }
     }
 }
 
@@ -153,7 +305,10 @@ export function tokenizeUnquotedString(
     let next
     do {
         lastCharacterPosition = cursor.position
-        if (isSpecialCharacter(cursor.peek(0))) {
+        if (
+            !isSymbolAllowedInUnquotedString(cursor.peek(0)) &&
+            isSpecialCharacter(cursor.peek(0))
+        ) {
             break
         }
         next = cursor.next()
@@ -165,9 +320,8 @@ export function tokenizeString(
     delimiter: "'" | '"',
     cursor: Cursor<string>,
     source: string,
-    delimiterPosition: number,
-    ignoreError = false
-): Result<string, SyntaxError> {
+    delimiterPosition: number
+): Result<string, UnfinishedString> {
     let next
     let firstCharacterPosition = delimiterPosition + 1
     let lastCharacterPosition = firstCharacterPosition
@@ -175,16 +329,30 @@ export function tokenizeString(
         lastCharacterPosition = cursor.position
         next = cursor.next()
         if (!next) {
-            if (ignoreError) {
-                break
-            }
             return {
                 error: {
                     kind: 'unfinished_string',
-                    position: delimiterPosition,
+                    range: [firstCharacterPosition - 1, lastCharacterPosition],
+                    delimiter,
                 },
             }
         }
     } while (next !== delimiter)
     return source.slice(firstCharacterPosition, lastCharacterPosition)
+}
+
+function isEventuallyFollowedByUnicodeAlpha(cursor: Cursor<string>): boolean {
+    let offset = 0
+    let next
+    while ((next = cursor.peek(offset))) {
+        offset += 1
+        if (isSpecialCharacter(next)) {
+            if (isSymbolAllowedInUnquotedString(next)) {
+                continue
+            }
+            return false
+        }
+        return true
+    }
+    return false
 }

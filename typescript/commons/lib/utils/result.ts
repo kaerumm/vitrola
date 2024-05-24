@@ -29,11 +29,11 @@ export class Results {
         }
     }
 
-    static error<E>(error: E): ErrorResult<E> {
+    static error<E, T = unknown>(error: E): Result<T, E> {
         return { error }
     }
 
-    static ok<T>(value: ValueResult<T>): ValueResult<T> {
+    static ok<T, E = unknown>(value: ValueResult<T>): Result<T, E> {
         return value
     }
 
@@ -47,12 +47,22 @@ export class Results {
 
     static map<T, E, U>(
         result: Result<T, E>,
-        mapper: (result: T) => U
+        mapper: (result: ValueResult<T>) => ValueResult<U>
     ): Result<U, E> {
         if (this.isOk(result)) {
-            return mapper(result as T) as Result<U, E>
+            return mapper(result)
         }
-        return result as ErrorResult<E>
+        return result
+    }
+
+    static mapError<T, E, U>(
+        result: Result<T, E>,
+        mapper: (error: E) => U
+    ): Result<T, U> {
+        if (this.isErr(result)) {
+            return { error: mapper(result.error) }
+        }
+        return result
     }
 
     static orElse<T>(result: Result<T, any>, or: T): T {

@@ -5,28 +5,37 @@
  * Locales may be incomplete in relation to the base locale, but they must never have extra definitions,
  * this restriction exists so as to keep file sizes to be only as big as they need to.
  */
-import type { FollowPath, ObjectKeyPaths } from '../types/objects.ts'
+import type { FollowPath, ObjectKeyPaths } from 'commons/lib/types/objects.ts'
 import type { BotError } from 'commons/lib/utils/error.ts'
 import type { Logger } from 'commons/lib/log.ts'
 import type { AsyncInitializer } from '../types/initialization.ts'
-import { LocaleSubmodule, modules } from '../../locales/base/index.ts'
+import {
+    LocaleEntry,
+    LocaleSubmodule,
+    modules,
+} from '../../locales/base/index.ts'
 import { GenericCache } from 'commons/lib/data-structures/cache.ts'
+import { Option } from 'commons/lib/utils/option.ts'
 import { Results, type Result } from 'commons/lib/utils/result.ts'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import type { ArgumentsOf, KeysMatchingSubtype } from '../types/utils.ts'
+import type {
+    ArgumentsOf,
+    KeysMatchingSubtype,
+} from 'commons/lib/types/utils.ts'
 import {
     AllLocalesAreValid,
     AvailableLocales,
     BaseLocale,
 } from './locale_validation.ts'
+import { tryFollow } from 'commons/lib/utils/objects.ts'
 
 const localeDir = 'locales/'
 
 type LocalePathMap = Record<string, Record<string, string>>
 
 export class LocalizationManagerInitializer
-    implements AsyncInitializer<LocalizationManager>
+    implements AsyncInitializer<LocalizationManager, BotError>
 {
     public async initialize(
         deps: Omit<
@@ -176,12 +185,12 @@ export class LocalizationManager {
             this.deps.logger.warn(result.error.message)
         }
         const submodule = Results.orElse(result, this.baseLocale[moduleKey])
-        let value = submodule['definitions'] as Record<string, any>
-        for (const trail of path) {
-            value = value[trail as keyof typeof value]
-        }
         // Type constraint safety ensures that the path we pass in takes us to a valid value
-        return value as FollowPath<BaseLocale[Module]['definitions'], Key>
+        return (tryFollow(submodule['definitions'], path) ??
+            tryFollow(
+                this.baseLocale[moduleKey].definitions,
+                path
+            )) as unknown as FollowPath<BaseLocale[Module]['definitions'], Key>
     }
 
     static lazy<
@@ -220,8 +229,13 @@ type StringOrLazyLocale<T> = T extends any[]
  * This class is meant to be used when the locale needs to be eventually resolved
  */
 export class LazyLocale<
-    Module extends KeysMatchingSubtype<BaseLocale, LocaleSubmodule>,
-    K extends ObjectKeyPaths<BaseLocale[Module]['definitions']>,
+    Module extends KeysMatchingSubtype<
+        BaseLocale,
+        LocaleSubmodule
+    > = KeysMatchingSubtype<BaseLocale, LocaleSubmodule>,
+    K extends ObjectKeyPaths<
+        BaseLocale[Module]['definitions']
+    > = ObjectKeyPaths<BaseLocale[Module]['definitions']>,
 > {
     private args: (
         | string

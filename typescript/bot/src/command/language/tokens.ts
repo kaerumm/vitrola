@@ -1,4 +1,5 @@
 import { Option } from 'commons/lib/utils/option'
+import { Range } from 'commons/lib/utils/range'
 
 // Literals
 export interface StringToken {
@@ -62,6 +63,10 @@ export interface Or {
     kind: 'or'
 }
 
+export interface InvalidToken {
+    kind: 'invalid_token'
+}
+
 export type Token =
     | LeftParen
     | RightParen
@@ -82,16 +87,20 @@ export type Token =
     | Pipe
     | And
     | Or
+    | InvalidToken
 
 export interface Span<T extends Token = Token> {
     token: T
-    position: number
+    sourcePosition: Range
 }
 
-export interface SyntaxError {
+export interface UnfinishedString {
     kind: 'unfinished_string'
-    position: number
+    delimiter: `"` | `'`
+    range: Range
 }
+
+export type SyntaxError = UnfinishedString
 
 export function isBinaryOperator(
     span: Option<Span<Token>>

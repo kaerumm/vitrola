@@ -1,11 +1,10 @@
-type Some<T> = T extends void ? undefined : T
 type None = null
-export type Option<T> = Some<T> | None
+export type Option<T> = T | None
 
 export class Options {
     private constructor() {}
 
-    static some<T>(value: Some<T>): Option<T> {
+    static some<T>(value: T): Option<T> {
         return value as Option<T>
     }
 
@@ -17,10 +16,10 @@ export class Options {
         if (!value) {
             return null
         }
-        return value as Some<T>
+        return value
     }
 
-    static isSome<T>(option: Option<T>): option is Some<T> {
+    static isSome<T>(option: Option<T>): option is T {
         return option !== null
     }
 
@@ -32,6 +31,6 @@ export class Options {
         if (this.isNone(option)) {
             return null
         }
-        return mapper(option as T) as Some<U>
+        return mapper(option)
     }
 }

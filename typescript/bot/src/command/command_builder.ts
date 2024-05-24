@@ -3,6 +3,7 @@ import { LazyLocale } from '../localization/localization_manager.ts'
 import { Results, type Result } from 'commons/lib/utils/result.ts'
 import { ASTExpression } from './language/ast.ts'
 import { SingletonFlagParser } from './parsers/flag.ts'
+import { PartialDSLError } from './commander.ts'
 
 export interface CommandDefinition<
     Args extends ArgumentDefinition<string, boolean, unknown>[],
@@ -32,9 +33,9 @@ export interface ArgumentDefinition<
  * Parsers may fail to parse, if what they receive is not what they expect.
  */
 export interface ArgumentParser<Type> {
-    parse(cursor: Cursor<string>): Result<Type, string>
+    parse(cursor: Cursor<string>): Result<[Type], LazyLocale>
     // Must return a string that hints what values are valid for this argument
-    hint(): LazyLocale<, unknown>
+    hint(): LazyLocale
 }
 
 interface DuplicateFlagName {
@@ -63,7 +64,7 @@ export type CommandFunction<Args extends ArgumentDefinition<any, any, any>[]> =
     (
         args: TransformArgumentDefinitionIntoArgumentDictionary<Args>,
         deps: {}
-    ) => Promise<Result<ASTExpression, void>>
+    ) => Promise<Result<ASTExpression, PartialDSLError>>
 
 /**
  * A command builder that guarantees type safety for the command callback by properly typing all of the arguments

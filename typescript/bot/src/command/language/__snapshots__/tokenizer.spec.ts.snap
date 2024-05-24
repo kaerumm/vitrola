@@ -1,387 +1,581 @@
 // Bun Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Tokenizer Snapshot 1`] = `
-[
-  {
-    "position": 0,
-    "token": {
-      "kind": "string",
-      "value": "command",
+{
+  "newlines": [
+    0,
+    7,
+    28,
+    51,
+    60,
+    69,
+    116,
+    163,
+    179,
+    221,
+    240,
+    285,
+    304,
+    349,
+    367,
+    411,
+  ],
+  "spans": [
+    {
+      "sourcePosition": [
+        0,
+        7,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 7,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        7,
+        8,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 8,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        8,
+        15,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 16,
-    "token": {
-      "kind": "string",
-      "value": "strOrLiteral",
+    {
+      "sourcePosition": [
+        16,
+        28,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "strOrLiteral",
+      },
     },
-  },
-  {
-    "position": 28,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        28,
+        29,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 29,
-    "token": {
-      "kind": "left_paren",
+    {
+      "sourcePosition": [
+        29,
+        30,
+      ],
+      "token": {
+        "kind": "left_paren",
+      },
     },
-  },
-  {
-    "position": 30,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        30,
+        37,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 38,
-    "token": {
-      "kind": "string",
-      "value": "strOrLiteral",
+    {
+      "sourcePosition": [
+        38,
+        50,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "strOrLiteral",
+      },
     },
-  },
-  {
-    "position": 50,
-    "token": {
-      "kind": "right_paren",
+    {
+      "sourcePosition": [
+        50,
+        51,
+      ],
+      "token": {
+        "kind": "right_paren",
+      },
     },
-  },
-  {
-    "position": 51,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        51,
+        52,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 52,
-    "token": {
-      "kind": "string",
-      "value": "string",
+    {
+      "sourcePosition": [
+        52,
+        60,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "string",
+      },
     },
-  },
-  {
-    "position": 60,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        60,
+        61,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 61,
-    "token": {
-      "kind": "string",
-      "value": "string",
+    {
+      "sourcePosition": [
+        61,
+        69,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "string",
+      },
     },
-  },
-  {
-    "position": 69,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        69,
+        70,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 70,
-    "token": {
-      "kind": "string",
-      "value": "string still string <>!=|&*/+-;&&||==!=>=<="",
+    {
+      "sourcePosition": [
+        70,
+        116,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "string still string <>!=|&*/+-;&&||==!=>=<="",
+      },
     },
-  },
-  {
-    "position": 116,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        116,
+        117,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 117,
-    "token": {
-      "kind": "string",
-      "value": "string still string <>!=|&*/+-;&&||==!=>=<='",
+    {
+      "sourcePosition": [
+        117,
+        163,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "string still string <>!=|&*/+-;&&||==!=>=<='",
+      },
     },
-  },
-  {
-    "position": 163,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        163,
+        164,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 164,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        164,
+        171,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 171,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        171,
+        172,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 172,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        172,
+        179,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 179,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        179,
+        180,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 180,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        180,
+        187,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 188,
-    "token": {
-      "kind": "string",
-      "value": "strOrLiteral",
+    {
+      "sourcePosition": [
+        188,
+        200,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "strOrLiteral",
+      },
     },
-  },
-  {
-    "position": 200,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        200,
+        201,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 201,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        201,
+        208,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 209,
-    "token": {
-      "kind": "string",
-      "value": "strOrLiteral",
+    {
+      "sourcePosition": [
+        209,
+        221,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "strOrLiteral",
+      },
     },
-  },
-  {
-    "position": 221,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        221,
+        222,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 222,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        222,
+        229,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 230,
-    "token": {
-      "kind": "and",
+    {
+      "sourcePosition": [
+        230,
+        232,
+      ],
+      "token": {
+        "kind": "and",
+      },
     },
-  },
-  {
-    "position": 233,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        233,
+        240,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 240,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        240,
+        241,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 241,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        241,
+        248,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 249,
-    "token": {
-      "kind": "string",
-      "value": "strOrLiteral",
+    {
+      "sourcePosition": [
+        249,
+        261,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "strOrLiteral",
+      },
     },
-  },
-  {
-    "position": 262,
-    "token": {
-      "kind": "and",
+    {
+      "sourcePosition": [
+        262,
+        264,
+      ],
+      "token": {
+        "kind": "and",
+      },
     },
-  },
-  {
-    "position": 265,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        265,
+        272,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 273,
-    "token": {
-      "kind": "string",
-      "value": "strOrLiteral",
+    {
+      "sourcePosition": [
+        273,
+        285,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "strOrLiteral",
+      },
     },
-  },
-  {
-    "position": 285,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        285,
+        286,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 286,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        286,
+        293,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 294,
-    "token": {
-      "kind": "or",
+    {
+      "sourcePosition": [
+        294,
+        296,
+      ],
+      "token": {
+        "kind": "or",
+      },
     },
-  },
-  {
-    "position": 297,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        297,
+        304,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 304,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        304,
+        305,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 305,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        305,
+        312,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 313,
-    "token": {
-      "kind": "string",
-      "value": "strOrLiteral",
+    {
+      "sourcePosition": [
+        313,
+        325,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "strOrLiteral",
+      },
     },
-  },
-  {
-    "position": 326,
-    "token": {
-      "kind": "or",
+    {
+      "sourcePosition": [
+        326,
+        328,
+      ],
+      "token": {
+        "kind": "or",
+      },
     },
-  },
-  {
-    "position": 329,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        329,
+        336,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 337,
-    "token": {
-      "kind": "string",
-      "value": "strOrLiteral",
+    {
+      "sourcePosition": [
+        337,
+        349,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "strOrLiteral",
+      },
     },
-  },
-  {
-    "position": 349,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        349,
+        350,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 350,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        350,
+        357,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 358,
-    "token": {
-      "kind": "pipe",
+    {
+      "sourcePosition": [
+        358,
+        359,
+      ],
+      "token": {
+        "kind": "pipe",
+      },
     },
-  },
-  {
-    "position": 360,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        360,
+        367,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 367,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        367,
+        368,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-  {
-    "position": 368,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        368,
+        375,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 376,
-    "token": {
-      "kind": "string",
-      "value": "strOrLiteral",
+    {
+      "sourcePosition": [
+        376,
+        388,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "strOrLiteral",
+      },
     },
-  },
-  {
-    "position": 389,
-    "token": {
-      "kind": "pipe",
+    {
+      "sourcePosition": [
+        389,
+        390,
+      ],
+      "token": {
+        "kind": "pipe",
+      },
     },
-  },
-  {
-    "position": 391,
-    "token": {
-      "kind": "string",
-      "value": "command",
+    {
+      "sourcePosition": [
+        391,
+        398,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "command",
+      },
     },
-  },
-  {
-    "position": 399,
-    "token": {
-      "kind": "string",
-      "value": "strOrLiteral",
+    {
+      "sourcePosition": [
+        399,
+        411,
+      ],
+      "token": {
+        "kind": "string",
+        "value": "strOrLiteral",
+      },
     },
-  },
-  {
-    "position": 411,
-    "token": {
-      "kind": "semicolon",
+    {
+      "sourcePosition": [
+        411,
+        412,
+      ],
+      "token": {
+        "kind": "semicolon",
+      },
     },
-  },
-]
+  ],
+}
 `;

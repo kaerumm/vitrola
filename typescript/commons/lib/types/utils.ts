@@ -95,6 +95,7 @@ type ArgumentsOfTest = [
             ]
         >
     >,
+    Expect<Equal<ArgumentsOf<string>, undefined>>,
 ]
 
 /**
@@ -168,3 +169,21 @@ type KeysMatchingSupertypeTest = [
 
 // not used
 type ExtendsStrict<T, U> = T extends U ? ([U] extends [T] ? T : never) : never
+
+export interface Constructor<T, Args extends any[] = []> {
+    new (...args: Args): T
+}
+
+export type Join<
+    Array extends string[],
+    Separator extends string,
+> = Array extends [infer First extends string, ...infer Rest extends string[]]
+    ? Rest['length'] extends 0
+        ? `${First}`
+        : `${First}${Separator}${Join<Rest, Separator>}`
+    : never
+
+type JoinTest = [
+    Expect<Equal<Join<['a', 'b'], '.'>, 'a.b'>>,
+    Expect<Equal<Join<['a'], '.'>, 'a'>>,
+]

@@ -22,24 +22,47 @@ import {
     isGroupingSpan,
     isStringSpan,
 } from './tokens'
+import { DSLError, PartialDSLError } from '../commander'
+import { Range } from 'commons/lib/utils/range'
+import { unreachable } from 'commons/lib/utils/error'
+import { Tokenizer } from './tokenizer'
+import { LocalizationManager } from '../../localization/localization_manager'
 
-export interface ParserError {
-    kind:
-        | 'binary_expression_rhs_missing'
-        | 'unexpected_token'
-        | 'expected_group_closer'
-    tokenPosition: number
+export type ParserError =
+    | BinaryExpressionRHSMissing
+    | UnexpectedToken
+    | ExpectedGroupCloser
+
+interface BinaryExpressionRHSMissing {
+    kind: 'binary_expression_rhs_missing'
+    range: Range
+}
+
+interface UnexpectedToken {
+    kind: 'unexpected_token'
+    token: Token
+    range: Range
+}
+
+interface ExpectedGroupCloser {
+    kind: 'expected_group_closer'
+    groupToken: Token
+    range: Range
 }
 
 export class Parser {
-    public static parse(spans: Span<Token>[]): Result<ASTNode, ParserError[]> {
-        const nodes: ASTNode[] = []
+    public static parse(
+        spans: Span<Token>[]
+    ): Result<ASTNode<ASTExpression>, ParserError[]> {
+        const nodes: ASTNode<ASTExpression>[] = []
         const errors: ParserError[] = []
+        let lastTokenWithinError = -1
         const cursor = new Cursor(spans)
         let next
         while ((next = cursor.peek(0))) {
             const result = this.expression(cursor)
             if (Results.isErr(result)) {
+                lastTokenWithinError = result.error.range[1]
                 errors.push(result.error)
                 continue
             }
@@ -51,19 +74,19 @@ export class Parser {
             return Results.error(errors)
         }
         return Results.ok({
-            expression: ASTBlock(nodes.map((n) => n.expression)),
-            tokenPosition: 0,
+            expression: ASTBlock(nodes),
+            tokenRange: [0, spans.length - 1],
         })
     }
 
     private static expression(
         cursor: Cursor<Span<Token>>
-    ): Result<Option<ASTNode>, ParserError> {
+    ): Result<Option<ASTNode<ASTExpression>>, ParserError> {
         return this.connective(cursor)
     }
     private static connective(
         cursor: Cursor<Span<Token>>
-    ): Result<Option<ASTNode>, ParserError> {
+    ): Result<Option<ASTNode<ASTExpression>>, ParserError> {
         let primaryNode = this.primary(cursor)
         if (Results.isErr(primaryNode) || !primaryNode) {
             return primaryNode
@@ -78,16 +101,12 @@ export class Parser {
             if (!rhs) {
                 return Results.error({
                     kind: 'binary_expression_rhs_missing',
-                    tokenPosition: node.tokenPosition,
+                    range: [node.tokenRange[0], cursor.position - 1],
                 })
             }
             node = {
-                expression: ASTBinary(
-                    node.expression,
-                    rhs.expression,
-                    span.token
-                ),
-                tokenPosition: node.tokenPosition,
+                expression: ASTBinary(node, rhs, span.token),
+                tokenRange: [node.tokenRange[0], rhs.tokenRange[1]],
             }
         }
         return node
@@ -95,7 +114,7 @@ export class Parser {
 
     private static primary(
         cursor: Cursor<Span<Token>>
-    ): Result<Option<ASTNode>, ParserError> {
+    ): Result<Option<ASTNode<ASTExpression>>, ParserError> {
         const span = cursor.next()
         if (!span) {
             return Results.ok(span)
@@ -111,50 +130,189 @@ export class Parser {
         }
         return Results.error({
             kind: 'unexpected_token',
-            tokenPosition: cursor.position - 1,
+            token: span.token,
+            range: [cursor.position - 1, cursor.position - 1],
         })
     }
 
     private static command(
         span: Span<StringToken>,
         cursor: Cursor<Span<Token>>
-    ): Result<ASTNode, ParserError> {
-        const args: ASTString[] = [span.token]
+    ): Result<ASTNode<ASTExpression>, ParserError> {
+        const args: ASTNode<ASTString>[] = [
+            {
+                expression: ASTString(span.token.value),
+                tokenRange: [cursor.position - 1, cursor.position - 1],
+            },
+        ]
         while (cursor.peek(0)?.token.kind === 'string') {
-            args.push((cursor.next()! as Span<StringToken>).token)
+            const next = cursor.next()! as Span<StringToken>
+            args.push({
+                expression: ASTString(next.token.value),
+                tokenRange: [cursor.position - 1, cursor.position - 1],
+            })
         }
         return Results.ok({
             expression: ASTCommand(args),
-            tokenPosition: span.position,
+            // SAFE: We are guaranteed to have atleast one element inside args.
+            tokenRange: [args.at(0)!.tokenRange[0], args.at(-1)!.tokenRange[1]],
         })
     }
 
     private static group(
         delimiter: Span<LeftParen>,
         cursor: Cursor<Span<Token>>
-    ): Result<ASTNode, ParserError> {
+    ): Result<ASTNode<ASTExpression>, ParserError> {
+        const startingPosition = cursor.position - 1
         // We allow empty groups to exist, so we check first if next token is a closing paren
         if (cursor.peek(0)?.token.kind === 'right_paren') {
             cursor.next()
             return Results.ok({
-                expression: ASTGroup(ASTUnit),
-                tokenPosition: delimiter.position,
+                expression: ASTGroup({
+                    expression: ASTUnit,
+                    tokenRange: [startingPosition, cursor.position - 1],
+                }),
+                tokenRange: [startingPosition, cursor.position - 1],
             })
         }
         const node = this.expression(cursor)
-        if (cursor.next()?.token.kind !== 'right_paren') {
+        if (Results.isErr(node)) {
+            return node
+        }
+        if (node === null || cursor.next()?.token.kind !== 'right_paren') {
             return Results.error({
                 kind: 'expected_group_closer',
-                tokenPosition: cursor.position,
+                groupToken: delimiter.token,
+                range: [startingPosition, cursor.position - 1],
             })
         }
-        let expression: ASTExpression = ASTUnit
-        if (Results.isOk(node) && Options.isSome(node)) {
-            expression = node.expression
-        }
         return Results.ok({
-            expression: ASTGroup(expression),
-            tokenPosition: delimiter.position,
+            expression: ASTGroup(node),
+            tokenRange: [startingPosition, cursor.position - 1],
         })
     }
+
+    static intoDSLError(
+        tokens: Span<Token>[],
+        parserError: ParserError,
+        newlines: number[],
+        source: string
+    ): DSLError {
+        const firstToken = tokens[parserError.range[0]].sourcePosition[0]
+        const lastToken = tokens[parserError.range[1]].sourcePosition[1]
+        return {
+            kind: 'command_failed',
+            ...Tokenizer.columnLineSourceForTokenRange(
+                firstToken,
+                lastToken,
+                newlines,
+                source
+            ),
+            ...this.parserErrorMessageHint(parserError),
+        }
+    }
+
+    private static parserErrorMessageHint(
+        parserError: ParserError
+    ): PartialDSLError {
+        switch (parserError.kind) {
+            case 'unexpected_token':
+                return this.unexpectedToken(parserError)
+            case 'expected_group_closer':
+                return this.expectedGroupCloser(parserError)
+            case 'binary_expression_rhs_missing':
+                return this.binaryExpressionRHSMissing(parserError)
+        }
+    }
+
+    private static unexpectedToken(
+        parserError: UnexpectedToken
+    ): PartialDSLError {
+        return {
+            errorMessage: LocalizationManager.lazy(
+                'interpreter',
+                'parser_unexpected_token',
+                [Tokenizer.tokenIntoString(parserError.token)]
+            ),
+            hint: LocalizationManager.lazy(
+                'interpreter',
+                'parser_unexpected_token_hint',
+                [Tokenizer.tokenIntoString(parserError.token)]
+            ),
+        }
+    }
+
+    private static expectedGroupCloser(
+        parserError: ExpectedGroupCloser
+    ): PartialDSLError {
+        return {
+            errorMessage: LocalizationManager.lazy(
+                'interpreter',
+                'parser_expected_group_closer',
+                [
+                    Tokenizer.tokenIntoString(
+                        Tokenizer.pairFor(parserError.groupToken)
+                    ),
+                ]
+            ),
+            hint: LocalizationManager.lazy(
+                'interpreter',
+                'parser_expected_group_closer_hint',
+                [
+                    Tokenizer.tokenIntoString(
+                        Tokenizer.pairFor(parserError.groupToken) ?? '??'
+                    ),
+                ]
+            ),
+        }
+    }
+
+    private static binaryExpressionRHSMissing(
+        _parserError: ParserError
+    ): PartialDSLError {
+        return {
+            errorMessage: LocalizationManager.lazy(
+                'interpreter',
+                'parser_binary_expression_rhs_missing',
+                undefined
+            ),
+            hint: LocalizationManager.lazy(
+                'interpreter',
+                'parser_binary_expression_rhs_missing_hint',
+                undefined
+            ),
+        }
+    }
+
+    // private static parseUnexpectedToken(
+    //     cursor: Cursor<Span>,
+    //     error: ParserError
+    // ): DSLError {
+    //     cursor.seek(error.tokenPosition)
+    // }
+
+    // private static intoDSLErrors(
+    //     parsingErrorResult: ParsingErrorResult
+    // ): DSLError[] {
+    //     const spans = Tokenizer.tokenizeRange(
+    //         0,
+    //         parsingErrorResult.lastTokenWithinError
+    //     )
+    //     if (Results.isErr(spans)) {
+    //         unreachable(
+    //             'Tokenization should not fail if we have reached parsing'
+    //         )
+    //     }
+    //     const cursor = new Cursor(spans)
+    //     return parsingErrorResult.map((error) => {
+    //         switch (error.kind) {
+    //             case 'unexpected_token':
+    //                 return this.parseUnexpectedToken(cursor, error)
+    //             case 'expected_group_closer':
+    //                 return this.expectedGroupCloser(cursor, error)
+    //             case 'binary_expression_rhs_missing':
+    //                 return this.binaryExpressionRHSMissing(cursor, error)
+    //         }
+    //     })
+    // }
 }

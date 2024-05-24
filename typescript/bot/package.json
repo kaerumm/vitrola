@@ -12,7 +12,7 @@
         "typescript": "^5.4.5"
     },
     "scripts": {
-        "start": "bun --hot src/index.ts",
+        "start": "bun src/index.ts",
         "test": "bun test"
     },
     "peerDependencies": {

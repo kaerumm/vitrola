@@ -1,19 +1,17 @@
-import { LocalizationManager } from '../localization/localization_manager.ts'
 import { ErrorResult, Result, Results } from 'commons/lib/utils/result'
 import type { Command } from './command.ts'
-import { ArgumentDefinition, CommandDefinition } from './command_builder.ts'
-import {
-    ASTCommand,
-    ASTExpression,
-    ASTString,
-    ASTUnit,
-} from './language/ast.ts'
-import { InterpreterError } from './language/interpreter.ts'
+import { CommandDefinition } from './command_builder.ts'
+import { ASTString } from './language/ast.ts'
 import { Option, Options } from 'commons/lib/utils/option.ts'
 import { Cursor } from 'commons/lib/data-structures/cursor.ts'
 import { unreachable } from 'commons/lib/utils/error.ts'
-import { enumerated } from 'commons/lib/utils/array.ts'
-import { MapLike } from 'typescript'
+import {
+    AliasNode,
+    AliasTree,
+    CommandAliasNode,
+} from '../../locales/base/index.ts'
+import { PartialDSLError } from './commander.ts'
+import { LocalizationManager } from '../localization/localization_manager.ts'
 
 type CommandMap = Map<string, CommandDefinition<any>>
 
@@ -31,6 +29,11 @@ export type CommandManagerError =
     | DuplicateCommandIdentifier
     | InvalidCommandDefinition
 
+export interface CommandNotFound {
+    unmatchedArgument: ASTString
+    matchedArguments: ASTString[]
+}
+
 export class CommandManager {
     /*
      * The commands map houses all commands, keyed by a unique identifier that is checked at registration time.
@@ -38,10 +41,7 @@ export class CommandManager {
      */
     private commandMap: CommandMap = new Map()
 
-    constructor(
-        private deps: {},
-        args: { commands: Command[] }
-    ) {
+    constructor(args: { commands: Command[] }) {
         for (const command of args.commands) {
             const result = this.register(command)
             if (Results.isErr(result)) {
@@ -76,163 +76,141 @@ export class CommandManager {
 
     matchCommand(
         argumentList: ASTString[],
-        aliasTree: AliasTree,
-        commandMap: CommandMap
-    ): Option<{ definition: CommandDefinition<any>; arguments: string[] }> {
+        aliasTrees: AliasTree[]
+    ): Result<
+        { definition: CommandDefinition<any>; arguments: string[] },
+        PartialDSLError
+    > {
+        let error: Option<
+            Pick<
+                ReturnType<CommandManager['resolveCommandName']>,
+                'unmatchedArgument' | 'matchedArguments'
+            >
+        > = null
+        if (aliasTrees.length <= 0) {
+            return Results.error({
+                errorMessage: LocalizationManager.lazy(
+                    'interpreter',
+                    'commander_no_alias_trees',
+                    undefined
+                ),
+                hint: LocalizationManager.lazy(
+                    'interpreter',
+                    'commander_no_alias_trees_hint',
+                    undefined
+                ),
+            })
+        }
+        for (const aliasTree of aliasTrees) {
+            const result = this.resolveCommandName(argumentList, aliasTree)
+            if (result.resolved === null) {
+                if (
+                    result.matchedArguments.length >
+                    (error?.matchedArguments.length ?? -1)
+                ) {
+                    error = {
+                        matchedArguments: result.matchedArguments,
+                        unmatchedArgument: result.unmatchedArgument,
+                    }
+                }
+                continue
+            }
+            const definition = this.commandMap.get(
+                result.resolved.aliasNode.commandIdentifier
+            )
+            if (!definition) {
+                error = {
+                    matchedArguments: result.matchedArguments,
+                    unmatchedArgument: result.unmatchedArgument,
+                }
+                continue
+            }
+            return {
+                definition: definition,
+                arguments: result.resolved.arguments,
+            }
+        }
+        if (!error) {
+            unreachable(
+                'There is atleast one aliasTree, and command resolution either returns a command definition or sets error'
+            )
+        }
+        return Results.error({
+            errorMessage: LocalizationManager.lazy(
+                'interpreter',
+                'commander_command_not_found',
+                [
+                    error.matchedArguments
+                        .map((n) => n.value)
+                        .concat(error.unmatchedArgument.value),
+                ]
+            ),
+            hint: LocalizationManager.lazy(
+                'interpreter',
+                'commander_command_not_found_hint',
+                [error.unmatchedArgument.value]
+            ),
+        })
+    }
+
+    private resolveCommandName(
+        argumentList: ASTString[],
+        aliasTree: AliasTree
+    ): {
+        resolved: Option<{
+            aliasNode: CommandAliasNode
+            arguments: string[]
+        }>
+        unmatchedArgument: ASTString
+        matchedArguments: ASTString[]
+    } {
         if (argumentList.length === 0) {
-            return null
+            return {
+                resolved: null,
+                unmatchedArgument: ASTString(''),
+                matchedArguments: [],
+            }
         }
         const cursor = new Cursor(argumentList)
-        let node = aliasTree.children.get(cursor.next()!.value) ?? null
-        if (!node) {
-            return null
+        const rootName = cursor.next()
+        let aliasNode = aliasTree[rootName!.value] ?? null
+        if (!aliasNode) {
+            return {
+                resolved: null,
+                unmatchedArgument: rootName!,
+                matchedArguments: [],
+            }
         }
+        const matchedArguments = [rootName!]
+        let unmatchedArgument = rootName!
         let next
         while ((next = cursor.next())) {
             if (!next) {
                 break
             }
-            if (!node.children.has(next.value)) {
+            if (!aliasNode.children || !aliasNode.children[next.value]) {
                 break
             }
-            node = node.children.get(next.value)!
+            aliasNode = aliasNode.children[next.value]!
+            matchedArguments.push(next)
+            unmatchedArgument = next!
         }
-        return Options.map(
-            Options.fromTruthy(commandMap.get(node.commandIdentifier)),
-            (definition) => ({
-                definition: definition,
+        if (!aliasNodeIsCommandNode(aliasNode)) {
+            return { resolved: null, matchedArguments, unmatchedArgument }
+        }
+        return {
+            resolved: {
+                aliasNode,
                 arguments: argumentList
                     .slice(cursor.position - 1)
                     .map((node) => node.value),
-            })
-        )
+            },
+            matchedArguments,
+            unmatchedArgument,
+        }
     }
+}
 
-    /**
-     * If we reached this funtion, argument.at(0) is '-'
-     */
-    private parseArgumentName(argument: string): string {
-        let from = 1
-        if (argument.charAt(1) === '-') {
-            from += 1
-        }
-        return argument.slice(from)
-    }
-
-    /**
-     * This is a very tiny parser, all it looks for is if there is a '-' or '--' at the start
-     * of the argument, if there is one then we parse according to the argument's parser
-     * *
-     * This can actually be moved into the language parser but I decided against it
-     */
-    parseArguments(
-        argumentList: string[],
-        argumentDefinition: CommandDefinition<
-            ArgumentDefinition<any, any, unknown>[]
-        >['arguments']
-    ): Result<MapLike<unknown>, InterpreterError> {
-        const args: MapLike<unknown> = {}
-        const positionalArguments = []
-        const cursor = new Cursor(argumentList)
-        let argument
-        while ((argument = cursor.next())) {
-            // First we parse all named arguments, while deferring positional arguments for later
-            switch (true) {
-                case argument.charAt(0) === '-':
-                    const name = this.parseArgumentName(argument)
-                    const definition = argumentDefinition.named.get(name)
-                    if (!definition) {
-                        break
-                    }
-                    const parsed = definition.parser.parse(cursor)
-                    if (Results.isErr(parsed)) {
-                        return Results.error({
-                            kind: 'localized_error',
-                            lazyLocale: LocalizationManager.lazy(
-                                'interpreter',
-                                'invalidArgument',
-                                [
-                                    definition.name,
-                                    parsed.error as string,
-                                    argumentList.join(''),
-                                    definition.parser.hint(),
-                                ]
-                            ),
-                        })
-                    }
-                    args[name] = parsed
-                    break
-                default:
-                    positionalArguments.push(argument)
-                    break
-            }
-        }
-        for (const [definition, index] of enumerated(
-            argumentDefinition.positional
-        )) {
-            if (index >= positionalArguments.length) {
-                if (!definition.optional) {
-                    return Results.error({
-                        kind: 'localized_error',
-                        lazyLocale: LocalizationManager.lazy(
-                            'interpreter.missingRequiredArgument',
-                            [
-                                definition.name,
-                                argumentList.join(''),
-                                definition.parser.hint(),
-                            ]
-                        ),
-                    })
-                }
-                break
-            }
-            const result = definition.parser.parse(cursor)
-            if (Results.isErr<string>(result)) {
-                return Results.error({
-                    kind: 'localized_error',
-                    lazyLocale: LocalizationManager.lazy(
-                        'interpreter.invalidArgument',
-                        [
-                            definition.name,
-                            positionalArguments[index],
-                            argumentList.join(''),
-                            definition.parser.hint(),
-                        ]
-                    ),
-                })
-            }
-            args[definition.name] = result
-        }
-        return args
-    }
-
-    execute(
-        command: ASTCommand,
-        aliasTrees: AliasTree[]
-    ): Result<ASTExpression, InterpreterError> {
-        for (const aliasTree of aliasTrees) {
-            const parsed = this.matchCommand(
-                command.arguments,
-                aliasTree,
-                this.commandMap
-            )
-            if (parsed) {
-                const parsedArguments = this.parseArguments(
-                    parsed.arguments,
-                    parsed.definition.arguments
-                )
-                if (Results.isErr(parsedArguments)) {
-                    return parsedArguments
-                }
-                parsed.definition.callback(parsedArguments, {})
-                return Results.ok(ASTUnit)
-            }
-        }
-        return Results.error({
-            kind: 'localized_error',
-            lazyLocale: LocalizationManager.lazy('interpreter.unknownCommand', [
-                command.arguments[0].value,
-            ]),
-        })
-    }
+function aliasNodeIsCommandNode(node: AliasNode): node is CommandAliasNode {
+    return !!node.commandIdentifier
 }

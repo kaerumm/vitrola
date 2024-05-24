@@ -60,7 +60,7 @@ export function isUnicodeWhitespace(character: Option<string>): boolean {
 // Whitespace tagged characters that are also tagged as definitive line breakers
 export function isUnicodeLineBreak(character: Option<string>): boolean {
     if (!character) {
-        return false
+        return true
     }
     return binarySearch(lineBreakers, character.codePointAt(0)!) !== null
 }
@@ -88,5 +88,23 @@ export function isSpecialCharacter(character: Option<string>): boolean {
         isReservedCharacter(character) ||
         isUnicodeLineBreak(character) ||
         isUnicodeWhitespace(character)
+    )
+}
+
+// These are characters that are not allowed to start unquoted strings and they also terminate unquoted strings
+export const unquotedStringAllowed: Readonly<number[]> = Array.from(
+    '-+/*!=<>&|'
+)
+    .map((c) => c.codePointAt(0)!)
+    .sort(numberIncreasing)
+
+export function isSymbolAllowedInUnquotedString(
+    character: Option<string>
+): boolean {
+    if (!character) {
+        return false
+    }
+    return (
+        binarySearch(unquotedStringAllowed, character.codePointAt(0)!) !== null
     )
 }

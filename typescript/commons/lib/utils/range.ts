@@ -1,3 +1,5 @@
+export type Range = [from: number, to: number]
+
 /**
  * @param from Inclusive
  * @param to Not inclusive
