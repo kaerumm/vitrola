@@ -38,4 +38,12 @@ describe('Cursor', function () {
         expect(cursor.peek(1)).toBe(null)
         expect(cursor.next()).toBe(null)
     })
+
+    test('Seek', function () {
+        const cursor = new Cursor([1, 2, 3])
+        cursor.seek(2)
+        expect(cursor.peek(0)).toEqual(3)
+        cursor.seek(0)
+        expect(cursor.peek(0)).toEqual(1)
+    })
 })

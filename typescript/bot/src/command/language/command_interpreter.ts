@@ -1,12 +1,11 @@
-import { ErrorResult, Result, Results } from 'commons/lib/utils/result'
-import { ASTCommand, ASTExpression, ASTNode, ASTUnit } from './ast'
+import { Result, Results } from 'commons/lib/utils/result'
+import { ASTCommand, ASTExpression, ASTNode, ASTString } from './ast'
 import { LocalizationManager } from '../../localization/localization_manager'
 import { enumerated } from 'commons/lib/utils/array'
 import { ArgumentDefinition, CommandDefinition } from '../command_builder'
 import { MapLike } from 'typescript'
 import { Cursor } from 'commons/lib/data-structures/cursor'
-import { InterpreterEnvironment } from './interpreter'
-import { DSLError, PartialDSLError } from '../commander'
+import { InterpreterEnvironment, InterpreterError } from './interpreter'
 
 export class CommandInterpreter {
     /**
@@ -26,12 +25,15 @@ export class CommandInterpreter {
      * *
      */
     private static parseArguments(
-        argumentList: string[],
+        argumentList: ASTNode<ASTString>[],
         argumentDefinition: CommandDefinition<
             ArgumentDefinition<any, any, unknown>[]
         >['arguments']
-    ): Result<MapLike<unknown>, PartialDSLError> {
+    ): Result<MapLike<unknown>, InterpreterError> {
         const args: MapLike<unknown> = {}
+        if (argumentList.length === 0) {
+            return args
+        }
         const positionalArguments = []
         const cursor = new Cursor(argumentList)
         let argument
@@ -39,8 +41,10 @@ export class CommandInterpreter {
             // First we parse all named arguments, while deferring positional arguments for later, but we keep
             // the order
             switch (true) {
-                case argument.charAt(0) === '-':
-                    const name = this.parseArgumentName(argument)
+                case argument.expression.value.charAt(0) === '-':
+                    const name = this.parseArgumentName(
+                        argument.expression.value
+                    )
                     const definition = argumentDefinition.named.get(name)
                     if (!definition) {
                         break
@@ -48,45 +52,49 @@ export class CommandInterpreter {
                     const parsed = definition.parser.parse(cursor)
                     if (Results.isErr(parsed)) {
                         return Results.error({
-                            errorMessage: parsed.error,
-                            hint: definition.parser.hint(),
+                            partialDSLError: parsed.error,
+                            node: argument,
                         })
                     }
-                    args[name] = parsed
+                    args[name] = parsed[0]
                     break
                 default:
                     positionalArguments.push(argument)
                     break
             }
         }
+        const positionalArgumentsCursor = new Cursor(positionalArguments)
         for (const [definition, index] of enumerated(
             argumentDefinition.positional
         )) {
             if (index >= positionalArguments.length) {
                 if (!definition.optional) {
                     return Results.error({
-                        errorMessage: LocalizationManager.lazy(
-                            'interpreter',
-                            'commander_required_argument',
-                            [definition.name, definition.description]
-                        ),
-                        hint: LocalizationManager.lazy(
-                            'interpreter',
-                            'commander_required_argument_hint',
-                            undefined
-                        ),
+                        partialDSLError: {
+                            errorMessage: LocalizationManager.lazy(
+                                'interpreter',
+                                'commander_required_argument',
+                                [definition.name, definition.description]
+                            ),
+                            hint: LocalizationManager.lazy(
+                                'interpreter',
+                                'commander_required_argument_hint',
+                                undefined
+                            ),
+                        },
+                        node: argumentList.at(-1)!,
                     })
                 }
                 break
             }
-            const result = definition.parser.parse(cursor)
+            const result = definition.parser.parse(positionalArgumentsCursor)
             if (Results.isErr(result)) {
                 return Results.error({
-                    errorMessage: result.error,
-                    hint: definition.parser.hint(),
+                    partialDSLError: result.error,
+                    node: argumentList[cursor.position - 1],
                 })
             }
-            args[definition.name] = result
+            args[definition.name] = result[0]
         }
         return args
     }
@@ -94,22 +102,28 @@ export class CommandInterpreter {
     public static async interpret(
         commandNode: ASTNode<ASTCommand>,
         environment: InterpreterEnvironment
-    ): Promise<Result<ASTExpression, PartialDSLError>> {
+    ): Promise<Result<ASTExpression, InterpreterError>> {
         // Get command manager from the scope, along with the alias trees
-        const parsed = environment.commandContext.commandManager.matchCommand(
-            commandNode.expression.arguments.map((node) => node.expression),
+        const matched = environment.commandContext.commandManager.matchCommand(
+            commandNode,
             environment.commandContext.aliasTrees
         )
-        if (Results.isErr(parsed)) {
-            return parsed
+        if (Results.isErr(matched)) {
+            return matched
         }
         const parsedArguments = this.parseArguments(
-            parsed.arguments,
-            parsed.definition.arguments
+            matched.arguments,
+            matched.definition.arguments
         )
         if (Results.isErr(parsedArguments)) {
             return parsedArguments
         }
-        return parsed.definition.callback(parsedArguments, {})
+        return Results.mapError(
+            await matched.definition.callback(parsedArguments, {}),
+            (partialDSLError) => ({
+                partialDSLError,
+                node: commandNode,
+            })
+        )
     }
 }

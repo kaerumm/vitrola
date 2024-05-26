@@ -1,7 +1,7 @@
 import { Cursor } from 'commons/lib/data-structures/cursor.ts'
 import { LazyLocale } from '../localization/localization_manager.ts'
 import { Results, type Result } from 'commons/lib/utils/result.ts'
-import { ASTExpression } from './language/ast.ts'
+import { ASTExpression, ASTNode, ASTString } from './language/ast.ts'
 import { SingletonFlagParser } from './parsers/flag.ts'
 import { PartialDSLError } from './commander.ts'
 
@@ -33,9 +33,8 @@ export interface ArgumentDefinition<
  * Parsers may fail to parse, if what they receive is not what they expect.
  */
 export interface ArgumentParser<Type> {
-    parse(cursor: Cursor<string>): Result<[Type], LazyLocale>
-    // Must return a string that hints what values are valid for this argument
-    hint(): LazyLocale
+    // We use a tuple because a type of unknown messes with Results, and we need to use unknown in some places
+    parse(cursor: Cursor<ASTNode<ASTString>>): Result<[Type], PartialDSLError>
 }
 
 interface DuplicateFlagName {

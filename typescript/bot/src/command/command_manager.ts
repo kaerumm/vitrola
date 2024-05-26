@@ -1,8 +1,8 @@
-import { ErrorResult, Result, Results } from 'commons/lib/utils/result'
+import { Result, Results } from 'commons/lib/utils/result'
 import type { Command } from './command.ts'
 import { CommandDefinition } from './command_builder.ts'
-import { ASTString } from './language/ast.ts'
-import { Option, Options } from 'commons/lib/utils/option.ts'
+import { ASTCommand, ASTNode, ASTString } from './language/ast.ts'
+import { Option } from 'commons/lib/utils/option.ts'
 import { Cursor } from 'commons/lib/data-structures/cursor.ts'
 import { unreachable } from 'commons/lib/utils/error.ts'
 import {
@@ -10,8 +10,8 @@ import {
     AliasTree,
     CommandAliasNode,
 } from '../../locales/base/index.ts'
-import { PartialDSLError } from './commander.ts'
 import { LocalizationManager } from '../localization/localization_manager.ts'
+import { InterpreterError } from './language/interpreter.ts'
 
 type CommandMap = Map<string, CommandDefinition<any>>
 
@@ -30,8 +30,8 @@ export type CommandManagerError =
     | InvalidCommandDefinition
 
 export interface CommandNotFound {
-    unmatchedArgument: ASTString
-    matchedArguments: ASTString[]
+    unmatchedArgument: ASTNode<ASTString>
+    matchedArguments: ASTNode<ASTString>[]
 }
 
 export class CommandManager {
@@ -75,11 +75,11 @@ export class CommandManager {
     }
 
     matchCommand(
-        argumentList: ASTString[],
+        node: ASTNode<ASTCommand>,
         aliasTrees: AliasTree[]
     ): Result<
-        { definition: CommandDefinition<any>; arguments: string[] },
-        PartialDSLError
+        { definition: CommandDefinition<any>; arguments: ASTNode<ASTString>[] },
+        InterpreterError
     > {
         let error: Option<
             Pick<
@@ -89,20 +89,26 @@ export class CommandManager {
         > = null
         if (aliasTrees.length <= 0) {
             return Results.error({
-                errorMessage: LocalizationManager.lazy(
-                    'interpreter',
-                    'commander_no_alias_trees',
-                    undefined
-                ),
-                hint: LocalizationManager.lazy(
-                    'interpreter',
-                    'commander_no_alias_trees_hint',
-                    undefined
-                ),
+                partialDSLError: {
+                    errorMessage: LocalizationManager.lazy(
+                        'interpreter',
+                        'commander_no_alias_trees',
+                        undefined
+                    ),
+                    hint: LocalizationManager.lazy(
+                        'interpreter',
+                        'commander_no_alias_trees_hint',
+                        undefined
+                    ),
+                },
+                node: node,
             })
         }
         for (const aliasTree of aliasTrees) {
-            const result = this.resolveCommandName(argumentList, aliasTree)
+            const result = this.resolveCommandName(
+                node.expression.arguments,
+                aliasTree
+            )
             if (result.resolved === null) {
                 if (
                     result.matchedArguments.length >
@@ -136,44 +142,43 @@ export class CommandManager {
             )
         }
         return Results.error({
-            errorMessage: LocalizationManager.lazy(
-                'interpreter',
-                'commander_command_not_found',
-                [
-                    error.matchedArguments
-                        .map((n) => n.value)
-                        .concat(error.unmatchedArgument.value),
-                ]
-            ),
-            hint: LocalizationManager.lazy(
-                'interpreter',
-                'commander_command_not_found_hint',
-                [error.unmatchedArgument.value]
-            ),
+            partialDSLError: {
+                errorMessage: LocalizationManager.lazy(
+                    'interpreter',
+                    'commander_command_not_found',
+                    [
+                        error.matchedArguments
+                            .map((n) => n.expression.value)
+                            .concat(error.unmatchedArgument.expression.value),
+                    ]
+                ),
+                hint: LocalizationManager.lazy(
+                    'interpreter',
+                    'commander_command_not_found_hint',
+                    [error.unmatchedArgument.expression.value]
+                ),
+            },
+            node: error.unmatchedArgument,
         })
     }
 
     private resolveCommandName(
-        argumentList: ASTString[],
+        argumentList: ASTNode<ASTString>[],
         aliasTree: AliasTree
     ): {
         resolved: Option<{
             aliasNode: CommandAliasNode
-            arguments: string[]
+            arguments: ASTNode<ASTString>[]
         }>
-        unmatchedArgument: ASTString
-        matchedArguments: ASTString[]
-    } {
+    } & CommandNotFound {
         if (argumentList.length === 0) {
-            return {
-                resolved: null,
-                unmatchedArgument: ASTString(''),
-                matchedArguments: [],
-            }
+            unreachable(
+                'Argument list must never be empty since we must have parsed a command to get here'
+            )
         }
         const cursor = new Cursor(argumentList)
         const rootName = cursor.next()
-        let aliasNode = aliasTree[rootName!.value] ?? null
+        let aliasNode = aliasTree[rootName!.expression.value] ?? null
         if (!aliasNode) {
             return {
                 resolved: null,
@@ -188,10 +193,13 @@ export class CommandManager {
             if (!next) {
                 break
             }
-            if (!aliasNode.children || !aliasNode.children[next.value]) {
+            if (
+                !aliasNode.children ||
+                !aliasNode.children[next.expression.value]
+            ) {
                 break
             }
-            aliasNode = aliasNode.children[next.value]!
+            aliasNode = aliasNode.children[next.expression.value]!
             matchedArguments.push(next)
             unmatchedArgument = next!
         }
@@ -203,7 +211,7 @@ export class CommandManager {
                 aliasNode,
                 arguments: argumentList
                     .slice(cursor.position - 1)
-                    .map((node) => node.value),
+                    .map((node) => node),
             },
             matchedArguments,
             unmatchedArgument,

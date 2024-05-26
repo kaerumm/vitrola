@@ -1,6 +1,6 @@
 import { Options, type Option } from './option'
 
-export type ValueResult<T> = T extends void ? undefined : T
+export type ValueResult<T> = T
 export interface ErrorResult<E> {
     error: E
 }
@@ -63,6 +63,13 @@ export class Results {
             return { error: mapper(result.error) }
         }
         return result
+    }
+
+    static mapOrElse<T>(result: Result<T, any>, e: () => T): T {
+        if (this.isOk(result)) {
+            return result as T
+        }
+        return e()
     }
 
     static orElse<T>(result: Result<T, any>, or: T): T {

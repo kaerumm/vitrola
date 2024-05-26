@@ -29,3 +29,32 @@ test('Result', function () {
         })
     ).toEqual({ error: true })
 })
+
+test('WrapError', function () {
+    expect(Results.isOk(Results.wrapError(() => true))).toEqual(true)
+    expect(
+        Results.isErr(
+            Results.wrapError(() => {
+                throw new Error('error')
+            })
+        )
+    ).toEqual(true)
+})
+
+test('WrapErrorAsync', async function () {
+    expect(
+        Results.isOk(await Results.wrapErrorAsync(async () => true))
+    ).toEqual(true)
+    expect(
+        Results.isErr(
+            await Results.wrapErrorAsync(async () => {
+                throw new Error('error')
+            })
+        )
+    ).toEqual(true)
+})
+
+test('MapOrElse', function () {
+    expect(Results.mapOrElse(Results.ok(2), () => 3)).toEqual(2)
+    expect(Results.mapOrElse(Results.error({}), () => 3)).toEqual(3)
+})

@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test'
-import { centeredLimit } from './string.ts'
+import { centeredLimit, paddingFor } from './string.ts'
 
 test('centeredLimit', function () {
     // even limit should divide equally between both parts
@@ -19,4 +19,9 @@ test('centeredLimit', function () {
     expect(centeredLimit('example', 2)).toEqual('e...e')
     // empty string should return an empty string regardless of the limit
     expect(centeredLimit('', 2)).toEqual('')
+})
+
+test('paddingFor', function () {
+    expect(paddingFor('12345678', 0)).toEqual('        ')
+    expect(paddingFor('12345678', -1)).toEqual('       ')
 })

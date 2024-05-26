@@ -53,7 +53,7 @@ interface ExpectedGroupCloser {
 export class Parser {
     public static parse(
         spans: Span<Token>[]
-    ): Result<ASTNode<ASTExpression>, ParserError[]> {
+    ): Result<ASTNode<ASTBlock>, ParserError[]> {
         const nodes: ASTNode<ASTExpression>[] = []
         const errors: ParserError[] = []
         let lastTokenWithinError = -1
@@ -284,35 +284,12 @@ export class Parser {
         }
     }
 
-    // private static parseUnexpectedToken(
-    //     cursor: Cursor<Span>,
-    //     error: ParserError
-    // ): DSLError {
-    //     cursor.seek(error.tokenPosition)
-    // }
-
-    // private static intoDSLErrors(
-    //     parsingErrorResult: ParsingErrorResult
-    // ): DSLError[] {
-    //     const spans = Tokenizer.tokenizeRange(
-    //         0,
-    //         parsingErrorResult.lastTokenWithinError
-    //     )
-    //     if (Results.isErr(spans)) {
-    //         unreachable(
-    //             'Tokenization should not fail if we have reached parsing'
-    //         )
-    //     }
-    //     const cursor = new Cursor(spans)
-    //     return parsingErrorResult.map((error) => {
-    //         switch (error.kind) {
-    //             case 'unexpected_token':
-    //                 return this.parseUnexpectedToken(cursor, error)
-    //             case 'expected_group_closer':
-    //                 return this.expectedGroupCloser(cursor, error)
-    //             case 'binary_expression_rhs_missing':
-    //                 return this.binaryExpressionRHSMissing(cursor, error)
-    //         }
-    //     })
-    // }
+    // Utility function for testing, should maybe be moved from here
+    static parseOrUnreachable(spans: Span<Token>[]): ASTNode<ASTBlock> {
+        return Results.mapOrElse(Parser.parse(spans), () =>
+            unreachable(
+                'This function should only be called when it is guaranteed the tokenization will not fail'
+            )
+        )
+    }
 }

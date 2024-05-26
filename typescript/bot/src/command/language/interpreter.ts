@@ -12,8 +12,10 @@ import { AliasTree } from '../../../locales/base'
 import { CommandInterpreter } from './command_interpreter'
 import { DSLError, PartialDSLError } from '../commander'
 import { CommandManager } from '../command_manager'
+import { MapLike } from 'typescript'
 
-export interface InterpreterEnvironment {
+export interface InterpreterEnvironment<Builtin = MapLike<any>> {
+    builtin: Builtin
     commandContext: {
         commandManager: CommandManager
         aliasTrees: AliasTree[]
@@ -68,18 +70,14 @@ export class Interpreter {
         node: ASTNode<ASTGroup>,
         environment: InterpreterEnvironment
     ): Promise<Result<ASTExpression, InterpreterError>> {
-        return this.interpret(node, environment)
+        return this.interpret(node.expression.node, environment)
     }
 
     private static async command(
         command: ASTNode<ASTCommand>,
         environment: InterpreterEnvironment
     ): Promise<Result<ASTExpression, InterpreterError>> {
-        const result = await CommandInterpreter.interpret(command, environment)
-        return Results.mapError(result, (error) => ({
-            partialDSLError: error,
-            node: command,
-        }))
+        return await CommandInterpreter.interpret(command, environment)
     }
 
     private static async logicalAnd(

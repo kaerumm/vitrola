@@ -74,10 +74,10 @@ export function ASTBinary(
     }
 }
 
-export function ASTGroup(expression: ASTNode<ASTExpression>): ASTGroup {
+export function ASTGroup(node: ASTNode<ASTExpression>): ASTGroup {
     return {
         kind: 'group',
-        node: expression,
+        node,
     }
 }
 

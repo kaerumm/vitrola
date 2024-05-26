@@ -183,7 +183,7 @@ export class Tokenizer {
         return {
             line: lineIndex + 1,
             column: start - newlines[lineIndex] + 1,
-            sourceLine: source.slice(start, end),
+            sourceLine: source.slice(newlines[lineIndex], end),
         }
     }
 
@@ -281,6 +281,18 @@ export class Tokenizer {
             case 'or':
                 return { kind: 'invalid_token' }
         }
+    }
+
+    // Utility function for testing, should maybe be moved from here
+    static tokenizeOrUnreachable(source: string): {
+        spans: Span<Token>[]
+        newlines: number[]
+    } {
+        return Results.mapOrElse(Tokenizer.tokenize(source), () =>
+            unreachable(
+                'This function should only be called when it is guaranteed the tokenization will not fail'
+            )
+        )
     }
 }
 

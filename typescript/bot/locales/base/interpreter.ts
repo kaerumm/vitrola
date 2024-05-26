@@ -32,5 +32,17 @@ export const interpreter = {
         commander_required_argument: (argument: string, description: string) =>
             `Missing required argument ${argument}: ${description}`,
         commander_required_argument_hint: `Redo the command passing the required argument`,
+        command_string_parser_missing_value: `Missing string argument`,
+        command_string_parser_missing_value_hint:
+            `Insert a string here, a string can be any sequence of characters` +
+            `that end on whitespace or a \" delimited sequence of characters like \"this is a string\"`,
+        testing_unreachable: `If you are reading this I sure hope you are a developer doing some testing, otherwise please report this as a bug!`,
+        command_number_parser_invalid_value: `Not a valid number value!`,
+        command_number_parser_invalid_value_hint: (examples: string[]) =>
+            `A number argument must be a parseable integer or float, i.e: ${examples.map((e) => `'${e}'`).join(' ')}`,
+        command_number_parser_missing_value: `Missing number argument`,
+        command_number_parser_missing_value_hint: (examples: string[]) =>
+            `Insert a number here, a number must be either a float or an integer like: ` +
+            `${examples.map((e) => `'${e}'`).join(' ')}`,
     },
 } satisfies LocaleSubmodule

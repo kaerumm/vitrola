@@ -66,12 +66,6 @@ export function binarySearchClosest(
             low = mid
         }
         if (high - low <= 1) {
-            if (array[high] === target) {
-                return high
-            }
-            if (array[low] === target) {
-                return low
-            }
             return bias === 'low' ? low : high
         }
     }
