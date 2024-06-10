@@ -1,5 +1,4 @@
 import { assert } from 'commons/lib/utils/error'
-
 /**
  * A buffer with amortized O(1) cost for insertions and O(1) cost for removes from either the start or the end
  *

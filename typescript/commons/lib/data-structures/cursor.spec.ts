@@ -46,4 +46,21 @@ describe('Cursor', function () {
         cursor.seek(0)
         expect(cursor.peek(0)).toEqual(1)
     })
+
+    test('Prev', function () {
+        const cursor = new Cursor([1, 2, 3])
+        cursor.seek(2)
+        expect(cursor.prev()).toEqual(3)
+        expect(cursor.prev()).toEqual(2)
+        expect(cursor.prev()).toEqual(1)
+        expect(cursor.prev()).toEqual(null)
+    })
+
+    test('SeekToLast', function () {
+        const cursor = new Cursor([1, 2, 3]).seekToLast()
+        expect(cursor.prev()).toEqual(3)
+        expect(cursor.prev()).toEqual(2)
+        expect(cursor.prev()).toEqual(1)
+        expect(cursor.prev()).toEqual(null)
+    })
 })

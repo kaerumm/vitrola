@@ -6,19 +6,10 @@ import { ArgumentDefinition, CommandDefinition } from '../command_builder'
 import { MapLike } from 'typescript'
 import { Cursor } from 'commons/lib/data-structures/cursor'
 import { InterpreterEnvironment, InterpreterError } from './interpreter'
+import { assert } from 'commons/lib/utils/error'
+import { production } from 'commons/lib/bundletime/production' with { type: 'macro' }
 
 export class CommandInterpreter {
-    /**
-     * If we reached this funtion, argument.at(0) is '-'
-     */
-    private static parseArgumentName(argument: string): string {
-        let from = 1
-        if (argument.charAt(1) === '-') {
-            from += 1
-        }
-        return argument.slice(from)
-    }
-
     /**
      * This is a very tiny parser, all it looks for is if there is a '-' or '--' at the start
      * of the argument, if there is one then we parse according to the argument's parser
@@ -30,10 +21,22 @@ export class CommandInterpreter {
             ArgumentDefinition<any, any, unknown>[]
         >['arguments']
     ): Result<MapLike<unknown>, InterpreterError> {
-        const args: MapLike<unknown> = {}
-        if (argumentList.length === 0) {
-            return args
+        if (!production()) {
+            // bundletime, but this check should be moved into whatever location compiles the commands
+            assert(
+                argumentDefinition.positional.every((value, index, defs) => {
+                    if (index === 0) {
+                        return true
+                    }
+                    if (!value.optional && defs[index - 1].optional) {
+                        return false
+                    }
+                    return true
+                }),
+                'Positional arguments must be ordered from optional to required'
+            )
         }
+        const args: MapLike<unknown> = {}
         const positionalArguments = []
         const cursor = new Cursor(argumentList)
         let argument
@@ -42,9 +45,7 @@ export class CommandInterpreter {
             // the order
             switch (true) {
                 case argument.expression.value.charAt(0) === '-':
-                    const name = this.parseArgumentName(
-                        argument.expression.value
-                    )
+                    const name = argument.expression.value.slice(1)
                     const definition = argumentDefinition.named.get(name)
                     if (!definition) {
                         break
@@ -63,29 +64,52 @@ export class CommandInterpreter {
                     break
             }
         }
+        // Check if there are any required named arguments missing
+        for (const definition of argumentDefinition.named.values()) {
+            if (!definition.optional && !args[definition.name]) {
+                return Results.error({
+                    partialDSLError: {
+                        errorMessage: LocalizationManager.lazy(
+                            'interpreter',
+                            'commander_required_argument',
+                            [definition.name, definition.description]
+                        ),
+                        hint: LocalizationManager.lazy(
+                            'interpreter',
+                            'commander_required_argument_hint',
+                            undefined
+                        ),
+                    },
+                    node: argumentList.at(-1)!,
+                })
+            }
+        }
+        // Go through positional arguments and parse
         const positionalArgumentsCursor = new Cursor(positionalArguments)
         for (const [definition, index] of enumerated(
             argumentDefinition.positional
         )) {
+            // Positional arguments are ordered, so if we don't have enough arguments and
+            // the argument definition we are looking at is optional, that means that every argument definition after it is also optional.
             if (index >= positionalArguments.length) {
-                if (!definition.optional) {
-                    return Results.error({
-                        partialDSLError: {
-                            errorMessage: LocalizationManager.lazy(
-                                'interpreter',
-                                'commander_required_argument',
-                                [definition.name, definition.description]
-                            ),
-                            hint: LocalizationManager.lazy(
-                                'interpreter',
-                                'commander_required_argument_hint',
-                                undefined
-                            ),
-                        },
-                        node: argumentList.at(-1)!,
-                    })
+                if (definition.optional) {
+                    break
                 }
-                break
+                return Results.error({
+                    partialDSLError: {
+                        errorMessage: LocalizationManager.lazy(
+                            'interpreter',
+                            'commander_required_argument',
+                            [definition.name, definition.description]
+                        ),
+                        hint: LocalizationManager.lazy(
+                            'interpreter',
+                            'commander_required_argument_hint',
+                            undefined
+                        ),
+                    },
+                    node: argumentList.at(-1)!,
+                })
             }
             const result = definition.parser.parse(positionalArgumentsCursor)
             if (Results.isErr(result)) {

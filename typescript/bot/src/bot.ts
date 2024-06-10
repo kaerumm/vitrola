@@ -1,9 +1,6 @@
 import { Client, ClientEvents, GatewayIntentBits, Message } from 'discord.js'
 import { CommandManager } from './command/command_manager'
-import {
-    LazyLocale,
-    LocalizationManager,
-} from './localization/localization_manager'
+import { LocalizationManager } from './localization/localization_manager'
 import { Logger } from 'commons/lib/log'
 import { AsyncInitializer } from './types/initialization'
 import { Result, Results, ValueResult } from 'commons/lib/utils/result'
@@ -12,7 +9,6 @@ import { seconds } from 'commons/lib/utils/time'
 import { ConfigurationManager } from './configuration/configuration_manager'
 import { Commander } from './command/commander'
 import { paddingFor } from 'commons/lib/utils/string'
-import { AliasTreeModule, LocaleSubmodule } from '../locales/base'
 
 function discordClientOncePromise<Event extends keyof ClientEvents>(
     client: Client,

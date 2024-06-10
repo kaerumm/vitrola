@@ -27,7 +27,7 @@ export const interpreter = {
         commander_no_alias_trees: `Não foi possível resolver o comando pois não existem Alias Trees disponíveis`,
         commander_no_alias_trees_hint: `Isso é definitivamente um bug e deve ser relatado!`,
         commander_command_not_found: (args: string[]) =>
-            `Não foi possível encontrar o comando enquanto processava \`${args.join(' ')}\``,
+            `Não foi possível executar \`${args.join(' ')}\``,
         commander_command_not_found_hint: (name: string) =>
             `Não existe um comando chamado ${name}`,
         commander_required_argument: (argument: string, description: string) =>

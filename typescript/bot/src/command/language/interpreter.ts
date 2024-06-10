@@ -14,8 +14,7 @@ import { DSLError, PartialDSLError } from '../commander'
 import { CommandManager } from '../command_manager'
 import { MapLike } from 'typescript'
 
-export interface InterpreterEnvironment<Builtin = MapLike<any>> {
-    builtin: Builtin
+export interface InterpreterEnvironment {
     commandContext: {
         commandManager: CommandManager
         aliasTrees: AliasTree[]

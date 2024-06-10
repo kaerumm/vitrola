@@ -99,7 +99,7 @@ export function ASTBlock(expressions: ASTNode<ASTExpression>[]): ASTBlock {
 
 export function ASTNode<Expression extends ASTExpression>(
     expression: Expression,
-    tokenRange: Range
+    tokenRange: Range = [0, 0]
 ): ASTNode<Expression> {
     return {
         expression,

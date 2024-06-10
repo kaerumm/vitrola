@@ -25,7 +25,6 @@ export interface ArgumentDefinition<
     description: string
     parser: ArgumentParser<Type>
     optional: Opt
-    shorthand?: string
     positional?: boolean
 }
 
@@ -42,12 +41,7 @@ interface DuplicateFlagName {
     name: string
 }
 
-interface DuplicateShorthandName {
-    kind: 'duplicate_shorthand_name'
-    shorthand: string
-}
-
-export type CommandBuildError = DuplicateFlagName | DuplicateShorthandName
+export type CommandBuildError = DuplicateFlagName
 
 type TransformArgumentDefinitionIntoArgumentDictionary<
     Arguments extends ArgumentDefinition<any, any, any>[],
@@ -176,15 +170,6 @@ export class CommandBuilder<Args extends ArgumentDefinition<any, any, any>[]> {
                         })
                     }
                     namedMap.set(argument.name, argument)
-                    if (argument.shorthand) {
-                        if (namedMap.has(argument.shorthand)) {
-                            return Results.error({
-                                kind: 'duplicate_shorthand_name',
-                                shorthand: argument.shorthand,
-                            })
-                        }
-                        namedMap.set(argument.shorthand, argument)
-                    }
             }
         }
         return {

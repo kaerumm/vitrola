@@ -13,7 +13,9 @@
     },
     "scripts": {
         "start": "bun src/index.ts",
-        "test": "bun test"
+        "test": "bun test",
+        "compile": "bun run compile:production",
+        "compile:production": "BUNDLETIME_ENV=production bun build --target bun --outdir ./build src/index.ts"
     },
     "peerDependencies": {
         "typescript": "^5.4.0"

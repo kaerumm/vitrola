@@ -30,7 +30,7 @@ export type CommandManagerError =
     | InvalidCommandDefinition
 
 export interface CommandNotFound {
-    unmatchedArgument: ASTNode<ASTString>
+    unmatchedArgument: Option<ASTNode<ASTString>>
     matchedArguments: ASTNode<ASTString>[]
 }
 
@@ -149,16 +149,16 @@ export class CommandManager {
                     [
                         error.matchedArguments
                             .map((n) => n.expression.value)
-                            .concat(error.unmatchedArgument.expression.value),
+                            .concat(error.unmatchedArgument!.expression.value),
                     ]
                 ),
                 hint: LocalizationManager.lazy(
                     'interpreter',
                     'commander_command_not_found_hint',
-                    [error.unmatchedArgument.expression.value]
+                    [error.unmatchedArgument!.expression.value]
                 ),
             },
-            node: error.unmatchedArgument,
+            node: error.unmatchedArgument!,
         })
     }
 
@@ -177,34 +177,40 @@ export class CommandManager {
             )
         }
         const cursor = new Cursor(argumentList)
-        const rootName = cursor.next()
-        let aliasNode = aliasTree[rootName!.expression.value] ?? null
-        if (!aliasNode) {
-            return {
-                resolved: null,
-                unmatchedArgument: rootName!,
-                matchedArguments: [],
-            }
-        }
-        const matchedArguments = [rootName!]
-        let unmatchedArgument = rootName!
+        const matchedArguments = []
+        let unmatchedArgument: CommandNotFound['unmatchedArgument'] = null
+        let aliasNode: AliasNode = aliasTree
         let next
         while ((next = cursor.next())) {
             if (!next) {
                 break
             }
+            unmatchedArgument = next!
             if (
                 !aliasNode.children ||
                 !aliasNode.children[next.expression.value]
             ) {
+                if (!aliasNodeIsCommandNode(aliasNode)) {
+                    return {
+                        resolved: null,
+                        matchedArguments,
+                        unmatchedArgument,
+                    }
+                }
                 break
             }
             aliasNode = aliasNode.children[next.expression.value]!
             matchedArguments.push(next)
-            unmatchedArgument = next!
+            unmatchedArgument = null
         }
+        // If we reached this line, the cursor has been exhausted. If the node we found is not
+        // a command, then it is not a match and we must go back one argument.
         if (!aliasNodeIsCommandNode(aliasNode)) {
-            return { resolved: null, matchedArguments, unmatchedArgument }
+            return {
+                resolved: null,
+                matchedArguments,
+                unmatchedArgument: matchedArguments.pop()!,
+            }
         }
         return {
             resolved: {
@@ -214,7 +220,7 @@ export class CommandManager {
                     .map((node) => node),
             },
             matchedArguments,
-            unmatchedArgument,
+            unmatchedArgument: null,
         }
     }
 }

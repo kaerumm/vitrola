@@ -30,6 +30,11 @@ export class Cursor<T> {
         }
     }
 
+    seekToLast(): Cursor<T> {
+        this._position = this.array.length - 1
+        return this
+    }
+
     /**
      * Returns the current value and advances the cursor, or returns null if the cursor has reached the end
      * of the backing array
@@ -40,6 +45,19 @@ export class Cursor<T> {
         }
         const value = this.array[this._position]
         this._position += 1
+        return value as Option<T>
+    }
+
+    /**
+     * Returns the current value and advances the cursor, or returns null if the cursor has reached the end
+     * of the backing array
+     */
+    prev(): Option<T> {
+        if (this.position < 0) {
+            return null
+        }
+        const value = this.array[this._position]
+        this._position -= 1
         return value as Option<T>
     }
 }

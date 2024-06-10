@@ -74,21 +74,22 @@ function testingEnvironment() {
     return [
         mock,
         {
-            builtin: {},
             commandContext: {
                 commandManager: new CommandManager({
                     commands: [cmd, errorCmd],
                 }),
                 aliasTrees: [
                     {
-                        error: { commandIdentifier: 'error' },
-                        callSpy: { commandIdentifier: 'callSpy' },
+                        children: {
+                            error: { commandIdentifier: 'error' },
+                            callSpy: { commandIdentifier: 'callSpy' },
+                        },
                     },
                 ],
             },
         },
         errorMock,
-    ] satisfies [typeof mock, InterpreterEnvironment<{}>, typeof errorMock]
+    ] satisfies [typeof mock, InterpreterEnvironment, typeof errorMock]
 }
 
 describe('Interpreter', function () {

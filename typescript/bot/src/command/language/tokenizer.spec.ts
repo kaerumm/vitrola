@@ -1,5 +1,5 @@
 import { describe, test, expect } from '@jest/globals'
-import { Tokenizer } from './tokenizer'
+import { Tokenizer, isEventuallyFollowedByUnicodeAlpha } from './tokenizer'
 import * as fs from 'fs'
 import * as path from 'path'
 import {
@@ -15,6 +15,7 @@ import { range } from 'commons/lib/utils/range'
 import { PseudoRandomNumberGenerator, fuzzyTest } from 'testing/lib/fuzz/fuzz'
 import { ErrorResult, Results, ValueResult } from 'commons/lib/utils/result'
 import { Option } from 'commons/lib/utils/option'
+import { Cursor } from 'commons/lib/data-structures/cursor'
 
 const snapshot_file = fs.readFileSync(
     path.resolve('./test-files/tokenizer_snapshot_file'),
@@ -286,5 +287,14 @@ describe('Tokenizer', function () {
                 { iterations: 100_000 }
             )
         ).toEqual(Results.ok(undefined))
+    })
+
+    test('isEventuallyFollowedByUnicodeAlpha', function () {
+        expect(
+            isEventuallyFollowedByUnicodeAlpha(new Cursor('-+/*!=<>&|'))
+        ).toEqual(false)
+        expect(
+            isEventuallyFollowedByUnicodeAlpha(new Cursor('-+/*!=<>&|a'))
+        ).toEqual(true)
     })
 })

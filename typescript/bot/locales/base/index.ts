@@ -14,7 +14,7 @@ export interface AliasNode {
     children?: Record<string, AliasNode>
 }
 
-export type AliasTree = Record<string, AliasNode>
+export type AliasTree = { children: Record<string, AliasNode> }
 
 /**
  * A localization resource to define command aliases, this allows the locale en_us to point the string 'play' to the command named 'play'

@@ -283,14 +283,13 @@ export class Tokenizer {
         }
     }
 
-    // Utility function for testing, should maybe be moved from here
     static tokenizeOrUnreachable(source: string): {
         spans: Span<Token>[]
         newlines: number[]
     } {
         return Results.mapOrElse(Tokenizer.tokenize(source), () =>
             unreachable(
-                'This function should only be called when it is guaranteed the tokenization will not fail'
+                'This function should only be called if the tokenization is not guaranteed to fail'
             )
         )
     }
@@ -353,7 +352,9 @@ export function tokenizeString(
     return source.slice(firstCharacterPosition, lastCharacterPosition)
 }
 
-function isEventuallyFollowedByUnicodeAlpha(cursor: Cursor<string>): boolean {
+export function isEventuallyFollowedByUnicodeAlpha(
+    cursor: Cursor<string>
+): boolean {
     let offset = 0
     let next
     while ((next = cursor.peek(offset))) {
