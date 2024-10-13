@@ -163,4 +163,24 @@ describe('Command manager', function () {
         }
         expect(match.definition.identifier).toEqual('testcommand1')
     })
+
+    test('matchCommand matches and consumes nodes', function () {
+        const match = commandManager['matchCommand'](
+            ASTNode(ASTCommand([ASTNode(ASTString('menu'))])),
+            [
+                {
+                    children: {
+                        menu: {
+                            commandIdentifier: 'testcommand1',
+                        },
+                    },
+                },
+            ]
+        )
+        if (Results.isErr(match)) {
+            unreachable(void expect(true).toEqual(false))
+        }
+        expect(match.definition.identifier).toEqual('testcommand1')
+        expect(match.arguments.length).toEqual(1)
+    })
 })

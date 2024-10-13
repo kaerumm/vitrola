@@ -127,7 +127,7 @@ export class CommandManager {
             if (!definition) {
                 error = {
                     matchedArguments: result.matchedArguments,
-                    unmatchedArgument: result.unmatchedArgument,
+                    unmatchedArgument: result.matchedArguments.pop()!,
                 }
                 continue
             }
@@ -197,6 +197,8 @@ export class CommandManager {
                         unmatchedArgument,
                     }
                 }
+                unmatchedArgument = null
+                cursor.prev()
                 break
             }
             aliasNode = aliasNode.children[next.expression.value]!
@@ -212,12 +214,16 @@ export class CommandManager {
                 unmatchedArgument: matchedArguments.pop()!,
             }
         }
+        const command_arguments: ASTNode<ASTString>[] = []
+        // Consume the cursor to get all unmatched nodes
+        let argument
+        while ((argument = cursor.next())) {
+            command_arguments.push(argument)
+        }
         return {
             resolved: {
                 aliasNode,
-                arguments: argumentList
-                    .slice(cursor.position - 1)
-                    .map((node) => node),
+                arguments: command_arguments,
             },
             matchedArguments,
             unmatchedArgument: null,

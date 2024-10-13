@@ -5,4 +5,5 @@ import type { modules as baseModules } from '../base/index'
 export const modules = {
     interpreter,
     alias_tree,
+    commands,
 } satisfies typeof baseModules

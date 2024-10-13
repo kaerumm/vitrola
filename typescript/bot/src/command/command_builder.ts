@@ -22,7 +22,7 @@ export interface ArgumentDefinition<
     Type,
 > {
     name: N
-    description: string
+    description: LazyLocale
     parser: ArgumentParser<Type>
     optional: Opt
     positional?: boolean

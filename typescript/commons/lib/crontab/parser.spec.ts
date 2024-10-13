@@ -19,7 +19,15 @@ test('Minute validation', function () {
             Parser.parse(Tokenizer.tokenizeOrUnreachable(`${number} * * * *`))[
                 'minute'
             ]
-        ).toEqual({ kind: 'time_value', value: number })
+        ).toEqual({
+            kind: 'list',
+            elements: [
+                {
+                    kind: 'time_value',
+                    value: number,
+                },
+            ],
+        })
     }
     expect(Parser.parse(Tokenizer.tokenizeOrUnreachable(`60 * * * *`))).toEqual(
         Results.error({
@@ -37,8 +45,13 @@ test('Hour validation', function () {
                 'hour'
             ]
         ).toEqual({
-            kind: 'time_value',
-            value: number,
+            kind: 'list',
+            elements: [
+                {
+                    kind: 'time_value',
+                    value: number,
+                },
+            ],
         })
     }
     expect(Parser.parse(Tokenizer.tokenizeOrUnreachable('* 24 * * *'))).toEqual(
@@ -57,8 +70,13 @@ test('DayOfMonth', function () {
                 'dayOfMonth'
             ]
         ).toEqual({
-            kind: 'time_value',
-            value: number,
+            kind: 'list',
+            elements: [
+                {
+                    kind: 'time_value',
+                    value: number,
+                },
+            ],
         })
     }
     expect(Parser.parse(Tokenizer.tokenizeOrUnreachable('* * 32 * *'))).toEqual(
@@ -77,8 +95,13 @@ test('Month', function () {
                 'month'
             ]
         ).toEqual({
-            kind: 'time_value',
-            value: number,
+            elements: [
+                {
+                    kind: 'time_value',
+                    value: number,
+                },
+            ],
+            kind: 'list',
         })
     }
     expect(Parser.month({ kind: 'number', value: 0 })).toEqual(
@@ -124,6 +147,11 @@ test('EveryPossibleTime', function () {
     expect(
         Parser.parse(Tokenizer.tokenizeOrUnreachable('* * * * *'))['minute']
     ).toEqual({
-        kind: 'every_possible_time',
+        kind: 'list',
+        elements: [
+            {
+                kind: 'every_possible_time',
+            },
+        ],
     })
 })

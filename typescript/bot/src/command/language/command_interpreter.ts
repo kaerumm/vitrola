@@ -16,6 +16,7 @@ export class CommandInterpreter {
      * *
      */
     private static parseArguments(
+        commandNode: ASTNode<ASTCommand>,
         argumentList: ASTNode<ASTString>[],
         argumentDefinition: CommandDefinition<
             ArgumentDefinition<any, any, unknown>[]
@@ -80,7 +81,7 @@ export class CommandInterpreter {
                             undefined
                         ),
                     },
-                    node: argumentList.at(-1)!,
+                    node: argumentList.at(-1) ?? commandNode,
                 })
             }
         }
@@ -108,7 +109,7 @@ export class CommandInterpreter {
                             undefined
                         ),
                     },
-                    node: argumentList.at(-1)!,
+                    node: argumentList.at(-1) ?? commandNode,
                 })
             }
             const result = definition.parser.parse(positionalArgumentsCursor)
@@ -136,6 +137,7 @@ export class CommandInterpreter {
             return matched
         }
         const parsedArguments = this.parseArguments(
+            commandNode,
             matched.arguments,
             matched.definition.arguments
         )

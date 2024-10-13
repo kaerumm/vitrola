@@ -33,5 +33,18 @@ export const interpreter = {
         commander_required_argument: (argument: string, description: string) =>
             `Faltando argumento obrigatório ${argument}: ${description}`,
         commander_required_argument_hint: `Refaça o comando passando o argumento obrigatório`,
+        command_string_parser_missing_value: `Faltando argumento do tipo texto`,
+        command_string_parser_missing_value_hint:
+            `Insira texto aqui, um texto 'e uma sequencia de caracteres'` +
+            `terminada com espa'co branco ou uma sequ^encia de caracteres delimitada por \",` +
+            ` como por exemplo \"isso 'e um texto'\"`,
+        testing_unreachable: `Se tu n~ao for um dev, deu ruim.`,
+        command_number_parser_invalid_value: `Valor n'umerico inv'alido`,
+        command_number_parser_invalid_value_hint: (examples: string[]) =>
+            `Um argumento de n'umero deve ser um n'umero inteiro ou decimal, ex: ${examples.map((e) => `'${e}'`).join(' ')}`,
+        command_number_parser_missing_value: `Faltando argumento do tipo numerico`,
+        command_number_parser_missing_value_hint: (examples: string[]) =>
+            `Insira um numero aqui, um n'umero deve ser ou um n'umero inteiro ou um n'umero decimal como: ` +
+            `${examples.map((e) => `'${e}'`).join(' ')}`,
     },
 } satisfies typeof baseInterpreter

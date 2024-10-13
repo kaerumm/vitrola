@@ -8,7 +8,7 @@ export class AsyncDisposableStack implements AsyncDisposable {
     }
 
     async [Symbol.asyncDispose](): Promise<void> {
-        let disposable
+        let disposable: AsyncDisposable | null = null
         while ((disposable = this.disposables.shift())) {
             await disposable[Symbol.asyncDispose]()
         }

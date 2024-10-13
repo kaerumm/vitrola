@@ -46,6 +46,8 @@ export type CronParserError = InvalidValue | ExpectedValue | UnexpectedToken
 
 export class Parser {
     static parse(tokens: Token[]): Result<CronExpression, CronParserError> {
+        // Typescript is being dumb here, and fixing it takes too much time so we have to
+        // accept the red squiggly line :(
         const cursor = new Cursor<Token>(tokens)
         return this.expression(cursor)
     }

@@ -1,9 +1,11 @@
 import { interpreter } from './interpreter'
 import { alias_tree } from './alias_tree'
+import { commands } from './commands'
 
 export const modules = {
     interpreter,
     alias_tree,
+    commands,
 } satisfies LocaleModule
 
 export type CommandAliasNode = Required<Pick<AliasNode, 'commandIdentifier'>> &

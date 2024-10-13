@@ -49,7 +49,7 @@ export class Cursor<T> {
     }
 
     /**
-     * Returns the current value and advances the cursor, or returns null if the cursor has reached the end
+     * Returns the current value and backtracks the cursor, or returns null if the cursor has reached the end
      * of the backing array
      */
     prev(): Option<T> {

@@ -55,6 +55,7 @@ export class Commander {
             commandContext,
         })
         if (Results.isErr(result)) {
+            console.log(JSON.stringify(result, null, 4))
             const startingSourcePosition =
                 tokenized.spans[result.error.node.tokenRange[0]]
                     .sourcePosition[0]

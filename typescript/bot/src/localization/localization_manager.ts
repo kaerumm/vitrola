@@ -225,6 +225,11 @@ type StringOrLazyLocale<T> = T extends any[]
       }
     : undefined
 
+// keyof this must properly return keys instead of never
+declare const T: BaseLocale[KeysMatchingSubtype<
+    BaseLocale,
+    LocaleSubmodule
+>]['definitions']
 /**
  * This class is meant to be used when the locale needs to be eventually resolved
  */

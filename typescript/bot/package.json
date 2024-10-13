@@ -22,7 +22,7 @@
     },
     "dependencies": {
         "discord.js": "^14.14.1",
-        "commons": "workspace:typescript/commons",
-        "testing": "workspace:typescript/testing"
+        "commons": "workspace:commons",
+        "testing": "workspace:testing"
     }
 }
