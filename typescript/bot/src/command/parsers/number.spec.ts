@@ -3,6 +3,7 @@ import { Cursor } from 'commons/lib/data-structures/cursor'
 import { ASTNode, ASTString } from '../language/ast'
 import { Results } from 'commons/lib/utils/result'
 import { NumberParser } from './number'
+import { LazyLocale } from '../../localization/localization_manager'
 
 test('Number parser', function () {
     const parser = new NumberParser()
@@ -16,6 +17,9 @@ test('Number parser', function () {
     if (Results.isOk(result)) {
         return expect(false).toEqual(true)
     }
+    if (result.error.errorMessage instanceof LazyLocale === false) {
+        return expect(false).toEqual(true)
+    }
     expect(result.error.errorMessage['key']).toEqual(
         'command_number_parser_missing_value'
     )
@@ -23,6 +27,9 @@ test('Number parser', function () {
         new Cursor([ASTNode(ASTString('not a number'), [0, 0])])
     )
     if (Results.isOk(result)) {
+        return expect(false).toEqual(true)
+    }
+    if (result.error.errorMessage instanceof LazyLocale === false) {
         return expect(false).toEqual(true)
     }
     expect(result.error.errorMessage['key']).toEqual(

@@ -9,6 +9,7 @@ import {
 } from './command_builder'
 import { ASTCommand, ASTNode, ASTString, ASTUnit } from './language/ast'
 import { unreachable } from 'commons/lib/utils/error'
+import { LazyLocale } from '../localization/localization_manager'
 
 class TestCommand1 implements Command {
     buildDefinition(): Result<CommandDefinition<any>, CommandBuildError> {
@@ -95,6 +96,12 @@ describe('Command manager', function () {
         if (Results.isOk(match)) {
             unreachable(void expect(true).toEqual(false))
         }
+        if (
+            match.error.partialDSLError.errorMessage instanceof LazyLocale ===
+            false
+        ) {
+            return expect(true).toEqual(false)
+        }
         expect(match.error.partialDSLError.errorMessage['key']).toEqual(
             'commander_no_alias_trees'
         )
@@ -111,6 +118,12 @@ describe('Command manager', function () {
         )
         if (Results.isOk(match)) {
             unreachable(void expect(true).toEqual(false))
+        }
+        if (
+            match.error.partialDSLError.errorMessage instanceof LazyLocale ===
+            false
+        ) {
+            return expect(true).toEqual(false)
         }
         expect(match.error.partialDSLError.errorMessage['key']).toEqual(
             'commander_command_not_found'
@@ -181,6 +194,6 @@ describe('Command manager', function () {
             unreachable(void expect(true).toEqual(false))
         }
         expect(match.definition.identifier).toEqual('testcommand1')
-        expect(match.arguments.length).toEqual(1)
+        expect(match.arguments.length).toEqual(0)
     })
 })

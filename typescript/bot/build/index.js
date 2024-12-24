@@ -31732,10 +31732,20 @@ var alias_tree = {
   }
 };
 
+// locales/base/commands.ts
+var commands = {
+  kind: "locale_submodule",
+  definitions: {
+    music_play_arguments_url_description: `A URL that points to a video/song or a search string that will be used to search youtube`,
+    music_play_arguments_playlist_description: `If the url should be interpreted as a playlistand should queue the videos of the playlist`
+  }
+};
+
 // locales/base/index.ts
 var modules = {
   interpreter,
-  alias_tree
+  alias_tree,
+  commands
 };
 
 // /home/kaerum/projetos/personal/discord-bot/node_modules/commons/lib/utils/time.ts
@@ -32329,12 +32339,24 @@ class Cursor {
       this._position = this.array.length;
     }
   }
+  seekToLast() {
+    this._position = this.array.length - 1;
+    return this;
+  }
   next() {
     if (this.position >= this.array.length) {
       return null;
     }
     const value = this.array[this._position];
     this._position += 1;
+    return value;
+  }
+  prev() {
+    if (this.position < 0) {
+      return null;
+    }
+    const value = this.array[this._position];
+    this._position -= 1;
     return value;
   }
 }
@@ -32397,7 +32419,7 @@ class CommandManager {
       if (!definition) {
         error3 = {
           matchedArguments: result5.matchedArguments,
-          unmatchedArgument: result5.unmatchedArgument
+          unmatchedArgument: result5.matchedArguments.pop()
         };
         continue;
       }
@@ -32441,6 +32463,8 @@ class CommandManager {
             unmatchedArgument
           };
         }
+        unmatchedArgument = null;
+        cursor2.prev();
         break;
       }
       aliasNode = aliasNode.children[next.expression.value];
@@ -32454,10 +32478,15 @@ class CommandManager {
         unmatchedArgument: matchedArguments.pop()
       };
     }
+    const command_arguments = [];
+    let argument;
+    while (argument = cursor2.next()) {
+      command_arguments.push(argument);
+    }
     return {
       resolved: {
         aliasNode,
-        arguments: argumentList.slice(cursor2.position - 1).map((node) => node)
+        arguments: command_arguments
       },
       matchedArguments,
       unmatchedArgument: null
@@ -32504,7 +32533,7 @@ class AsyncDisposableStack {
     this.disposables.push(disposable);
   }
   async[Symbol.asyncDispose]() {
-    let disposable;
+    let disposable = null;
     while (disposable = this.disposables.shift()) {
       await disposable[Symbol.asyncDispose]();
     }
@@ -32590,15 +32619,6 @@ class CommandBuilder {
             });
           }
           namedMap.set(argument.name, argument);
-          if (argument.shorthand) {
-            if (namedMap.has(argument.shorthand)) {
-              return Results.error({
-                kind: "duplicate_shorthand_name",
-                shorthand: argument.shorthand
-              });
-            }
-            namedMap.set(argument.shorthand, argument);
-          }
       }
     }
     return {
@@ -32654,19 +32674,6 @@ function ASTBlock(expressions) {
 }
 var ASTUnit = { kind: "unit" };
 
-// src/command/parsers/string.ts
-class StringParser {
-  parse(cursor2) {
-    if (cursor2.peek(0)) {
-      return [cursor2.next().expression.value];
-    }
-    return Results.error({
-      errorMessage: LocalizationManager.lazy("interpreter", "command_string_parser_missing_value", undefined),
-      hint: LocalizationManager.lazy("interpreter", "command_string_parser_missing_value_hint", undefined)
-    });
-  }
-}
-
 // src/command/commands/ping.ts
 class PingCommand {
   deps;
@@ -32674,13 +32681,7 @@ class PingCommand {
     this.deps = deps;
   }
   buildDefinition() {
-    const deps = this.deps;
-    return CommandBuilder.new("ping").flag({ name: "reply", description: "if it replies" }).positional({
-      name: "who",
-      description: "who to ping",
-      parser: new StringParser
-    }).build(async function execute(args, _) {
-      deps.logger.info(`Hi! ${args.who}, should you reply? ${args.reply}`);
+    return CommandBuilder.new("ping").build(async function execute(_args, _) {
       return Results.ok(ASTUnit);
     });
   }
@@ -32744,15 +32745,9 @@ function* enumerated(array) {
 
 // src/command/language/command_interpreter.ts
 class CommandInterpreter {
-  static parseArgumentName(argument) {
-    assert(argument.at(0) === "-", `If we reached this function we expect the argument to start with '-'`);
-    let from = 1;
-    if (argument.charAt(1) === "-") {
-      from += 1;
+  static parseArguments(commandNode, argumentList, argumentDefinition) {
+    if (false) {
     }
-    return argument.slice(from);
-  }
-  static parseArguments(argumentList, argumentDefinition) {
     const args = {};
     const positionalArguments = [];
     const cursor3 = new Cursor(argumentList);
@@ -32760,7 +32755,7 @@ class CommandInterpreter {
     while (argument = cursor3.next()) {
       switch (true) {
         case argument.expression.value.charAt(0) === "-":
-          const name = this.parseArgumentName(argument.expression.value);
+          const name = argument.expression.value.slice(1);
           const definition = argumentDefinition.named.get(name);
           if (!definition) {
             break;
@@ -32786,7 +32781,7 @@ class CommandInterpreter {
             errorMessage: LocalizationManager.lazy("interpreter", "commander_required_argument", [definition.name, definition.description]),
             hint: LocalizationManager.lazy("interpreter", "commander_required_argument_hint", undefined)
           },
-          node: argumentList.at(-1)
+          node: argumentList.at(-1) ?? commandNode
         });
       }
     }
@@ -32801,17 +32796,17 @@ class CommandInterpreter {
             errorMessage: LocalizationManager.lazy("interpreter", "commander_required_argument", [definition.name, definition.description]),
             hint: LocalizationManager.lazy("interpreter", "commander_required_argument_hint", undefined)
           },
-          node: argumentList.at(-1)
+          node: argumentList.at(-1) ?? commandNode
         });
       }
-      const result9 = definition.parser.parse(positionalArgumentsCursor);
-      if (Results.isErr(result9)) {
+      const result8 = definition.parser.parse(positionalArgumentsCursor);
+      if (Results.isErr(result8)) {
         return Results.error({
-          partialDSLError: result9.error,
+          partialDSLError: result8.error,
           node: argumentList[cursor3.position - 1]
         });
       }
-      args[definition.name] = result9[0];
+      args[definition.name] = result8[0];
     }
     return args;
   }
@@ -32820,11 +32815,13 @@ class CommandInterpreter {
     if (Results.isErr(matched)) {
       return matched;
     }
-    const parsedArguments = this.parseArguments(matched.arguments, matched.definition.arguments);
+    const parsedArguments = this.parseArguments(commandNode, matched.arguments, matched.definition.arguments);
     if (Results.isErr(parsedArguments)) {
       return parsedArguments;
     }
-    return Results.mapError(await matched.definition.callback(parsedArguments, {}), (partialDSLError) => ({
+    return Results.mapError(await matched.definition.callback(parsedArguments, {
+      message: environment.commandContext.message
+    }), (partialDSLError) => ({
       partialDSLError,
       node: commandNode
     }));
@@ -32851,9 +32848,9 @@ class Interpreter {
   }
   static async block(node, environment) {
     for (const n of node.expression.nodes) {
-      const result10 = await this.interpret(n, environment);
-      if (Results.isErr(result10)) {
-        return result10;
+      const result9 = await this.interpret(n, environment);
+      if (Results.isErr(result9)) {
+        return result9;
       }
     }
     return ASTUnit;
@@ -33021,7 +33018,7 @@ function tokenizeString(delimiter, cursor4, source, delimiterPosition) {
   } while (next !== delimiter);
   return source.slice(firstCharacterPosition, lastCharacterPosition);
 }
-var isEventuallyFollowedByUnicodeAlpha = function(cursor4) {
+function isEventuallyFollowedByUnicodeAlpha(cursor4) {
   let offset = 0;
   let next;
   while (next = cursor4.peek(offset)) {
@@ -33035,7 +33032,7 @@ var isEventuallyFollowedByUnicodeAlpha = function(cursor4) {
     return true;
   }
   return false;
-};
+}
 
 class Tokenizer {
   static tokenize(source) {
@@ -33262,7 +33259,7 @@ class Tokenizer {
     }
   }
   static tokenizeOrUnreachable(source) {
-    return Results.mapOrElse(Tokenizer.tokenize(source), () => unreachable("This function should only be called when it is guaranteed the tokenization will not fail"));
+    return Results.mapOrElse(Tokenizer.tokenize(source), () => unreachable("This function should only be called if the tokenization is not guaranteed to fail"));
   }
 }
 
@@ -33286,14 +33283,14 @@ class Parser {
     const cursor5 = new Cursor(spans);
     let next;
     while (next = cursor5.peek(0)) {
-      const result12 = this.expression(cursor5);
-      if (Results.isErr(result12)) {
-        lastTokenWithinError = result12.error.range[1];
-        errors.push(result12.error);
+      const result11 = this.expression(cursor5);
+      if (Results.isErr(result11)) {
+        lastTokenWithinError = result11.error.range[1];
+        errors.push(result11.error);
         continue;
       }
-      if (Options.isSome(result12)) {
-        nodes.push(result12);
+      if (Options.isSome(result11)) {
+        nodes.push(result11);
       }
     }
     if (errors.length > 0) {
@@ -33458,18 +33455,19 @@ class Commander {
     if (Results.isErr(parsed)) {
       return parsed;
     }
-    const result13 = await Interpreter.interpret(parsed, {
+    const result12 = await Interpreter.interpret(parsed, {
       commandContext
     });
-    if (Results.isErr(result13)) {
-      const startingSourcePosition = tokenized.spans[result13.error.node.tokenRange[0]].sourcePosition[0];
-      const endingSourcePosition = tokenized.spans[result13.error.node.tokenRange[1]].sourcePosition[1];
+    if (Results.isErr(result12)) {
+      console.log(JSON.stringify(result12, null, 4));
+      const startingSourcePosition = tokenized.spans[result12.error.node.tokenRange[0]].sourcePosition[0];
+      const endingSourcePosition = tokenized.spans[result12.error.node.tokenRange[1]].sourcePosition[1];
       const columnLineSource = Tokenizer.columnLineSourceForTokenRange(startingSourcePosition, endingSourcePosition, tokenized.newlines, source);
       return {
         error: [
           {
             kind: "command_failed",
-            ...result13.error.partialDSLError,
+            ...result12.error.partialDSLError,
             ...columnLineSource
           }
         ]

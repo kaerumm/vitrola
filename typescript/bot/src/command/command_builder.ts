@@ -1,9 +1,10 @@
 import { Cursor } from 'commons/lib/data-structures/cursor.ts'
-import { LazyLocale } from '../localization/localization_manager.ts'
+import { LazyLocaleI } from '../localization/localization_manager.ts'
 import { Results, type Result } from 'commons/lib/utils/result.ts'
 import { ASTExpression, ASTNode, ASTString } from './language/ast.ts'
 import { SingletonFlagParser } from './parsers/flag.ts'
 import { PartialDSLError } from './commander.ts'
+import type { Message } from 'discord.js'
 
 export interface CommandDefinition<
     Args extends ArgumentDefinition<string, boolean, unknown>[],
@@ -22,7 +23,7 @@ export interface ArgumentDefinition<
     Type,
 > {
     name: N
-    description: LazyLocale
+    description: string | LazyLocaleI
     parser: ArgumentParser<Type>
     optional: Opt
     positional?: boolean
@@ -56,7 +57,7 @@ type TransformArgumentDefinitionIntoArgumentDictionary<
 export type CommandFunction<Args extends ArgumentDefinition<any, any, any>[]> =
     (
         args: TransformArgumentDefinitionIntoArgumentDictionary<Args>,
-        deps: {}
+        context: { message: Message }
     ) => Promise<Result<ASTExpression, PartialDSLError>>
 
 /**

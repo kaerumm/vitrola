@@ -3,10 +3,16 @@ import { CommandInterpreter } from './command_interpreter'
 import { SingletonFlagParser } from '../parsers/flag'
 import { Results } from 'commons/lib/utils/result'
 import { unreachable } from 'commons/lib/utils/error'
-import { ASTNode, ASTString } from './ast'
+import { ASTCommand, ASTNode, ASTString } from './ast'
 import { StringParser } from '../parsers/string'
+import { LazyLocale } from '../../localization/localization_manager'
 
 describe('parseArguments', function () {
+    const node: ASTNode<ASTCommand> = {
+        expression: { kind: 'command', arguments: [] },
+        tokenRange: [0, 0],
+    }
+
     test('parseArguments should return an error if required named arguments were not provided', function () {
         const named = new Map()
         named.set('test', {
@@ -15,12 +21,18 @@ describe('parseArguments', function () {
             parser: SingletonFlagParser,
             optional: false,
         })
-        const result = CommandInterpreter['parseArguments']([], {
+        const result = CommandInterpreter['parseArguments'](node, [], {
             named,
             positional: [],
         })
         if (Results.isOk(result)) {
-            unreachable(void expect(true).toEqual(false))
+            return expect(true).toEqual(false)
+        }
+        if (
+            result.error.partialDSLError.errorMessage instanceof LazyLocale ===
+            false
+        ) {
+            return expect(true).toEqual(false)
         }
         expect(result.error.partialDSLError.errorMessage['key']).toEqual(
             'commander_required_argument'
@@ -29,7 +41,7 @@ describe('parseArguments', function () {
 
     test('parseArguments should return an error if required positional arguments were not provided', function () {
         const named = new Map()
-        const result = CommandInterpreter['parseArguments']([], {
+        const result = CommandInterpreter['parseArguments'](node, [], {
             named,
             positional: [
                 {
@@ -44,6 +56,12 @@ describe('parseArguments', function () {
         if (Results.isOk(result)) {
             unreachable(void expect(true).toEqual(false))
         }
+        if (
+            result.error.partialDSLError.errorMessage instanceof LazyLocale ===
+            false
+        ) {
+            return expect(true).toEqual(false)
+        }
         expect(result.error.partialDSLError.errorMessage['key']).toEqual(
             'commander_required_argument'
         )
@@ -57,6 +75,7 @@ describe('parseArguments', function () {
             parser: SingletonFlagParser,
         })
         let result = CommandInterpreter['parseArguments'](
+            node,
             [ASTNode(ASTString('-test'))],
             {
                 named,
@@ -72,6 +91,7 @@ describe('parseArguments', function () {
     test('parseArguments should parse positional arguments in the correct order', function () {
         let named = new Map()
         let result = CommandInterpreter['parseArguments'](
+            node,
             [
                 ASTNode(ASTString('test')),
                 ASTNode(ASTString('test2')),
@@ -125,7 +145,7 @@ describe('parseArguments', function () {
                 optional: true,
             },
         ]
-        let result = CommandInterpreter['parseArguments']([], {
+        let result = CommandInterpreter['parseArguments'](node, [], {
             named,
             positional,
         })
@@ -135,6 +155,7 @@ describe('parseArguments', function () {
         expect(result['test']).toEqual(undefined)
         expect(result['named']).toEqual(undefined)
         result = CommandInterpreter['parseArguments'](
+            node,
             [ASTNode(ASTString('-named')), ASTNode(ASTString('value'))],
             {
                 named,
@@ -147,6 +168,7 @@ describe('parseArguments', function () {
         expect(result['test']).toEqual(undefined)
         expect(result['named']).toEqual('value')
         result = CommandInterpreter['parseArguments'](
+            node,
             [ASTNode(ASTString('value'))],
             {
                 named,

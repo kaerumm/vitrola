@@ -12,12 +12,13 @@ import { AliasTree } from '../../../locales/base'
 import { CommandInterpreter } from './command_interpreter'
 import { DSLError, PartialDSLError } from '../commander'
 import { CommandManager } from '../command_manager'
-import { MapLike } from 'typescript'
+import type { Message } from 'discord.js'
 
 export interface InterpreterEnvironment {
     commandContext: {
         commandManager: CommandManager
         aliasTrees: AliasTree[]
+        message: Message
     }
 }
 

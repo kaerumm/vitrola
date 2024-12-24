@@ -1,4 +1,5 @@
 import { test, describe, expect, mock } from 'bun:test'
+import { createStubInstance } from 'sinon'
 import { Interpreter, InterpreterEnvironment } from './interpreter'
 import { Parser } from './parser'
 import { Tokenizer } from './tokenizer'
@@ -13,6 +14,7 @@ import {
 import { LocalizationManager } from '../../localization/localization_manager'
 import { ASTBinary, ASTGroup, ASTNode, ASTString } from './ast'
 import { NumberParser } from '../parsers/number'
+import { Message } from 'discord.js'
 
 function errorCommand() {
     const m = mock(async (args) => {
@@ -71,6 +73,7 @@ function callMockCommand() {
 function testingEnvironment() {
     const [mock, cmd] = callMockCommand()
     const [errorMock, errorCmd] = errorCommand()
+    const message = createStubInstance(Message)
     return [
         mock,
         {
@@ -86,6 +89,7 @@ function testingEnvironment() {
                         },
                     },
                 ],
+                message,
             },
         },
         errorMock,
@@ -149,6 +153,7 @@ describe('Interpreter', function () {
 
         test('Logical or', async function () {
             const [mock, environment, errorMock] = testingEnvironment()
+            const context = { message: environment.commandContext.message }
             // Should short circuit and return lhs if lhs does not fail
             let result = await Interpreter['binary'](
                 Parser.parseOrUnreachable(
@@ -189,14 +194,15 @@ describe('Interpreter', function () {
             expect(errorMock).toHaveBeenCalledTimes(2)
             expect(mock).toHaveBeenCalledTimes(0)
             expect(Results.isOk(result)).toEqual(false)
-            expect(errorMock).toHaveBeenNthCalledWith(1, { number: 1 }, {})
-            expect(errorMock).toHaveBeenNthCalledWith(2, { number: 2 }, {})
+            expect(errorMock).toHaveBeenNthCalledWith(1, { number: 1 }, context)
+            expect(errorMock).toHaveBeenNthCalledWith(2, { number: 2 }, context)
         })
     })
 
     test('Block expressions', async function () {
         // Expressions should be run sequentially
         const [mock, environment] = testingEnvironment()
+        const context = { message: environment.commandContext.message }
         let result = await Interpreter['block'](
             Parser.parseOrUnreachable(
                 Tokenizer.tokenizeOrUnreachable('callSpy 1;callSpy 2;callSpy 3')
@@ -211,21 +217,21 @@ describe('Interpreter', function () {
             {
                 number: 1,
             },
-            {}
+            context
         )
         expect(mock).toHaveBeenNthCalledWith(
             2,
             {
                 number: 2,
             },
-            {}
+            context
         )
         expect(mock).toHaveBeenNthCalledWith(
             3,
             {
                 number: 3,
             },
-            {}
+            context
         )
         mock.mockClear()
         // An error should exit early
@@ -243,13 +249,14 @@ describe('Interpreter', function () {
             {
                 number: 1,
             },
-            {}
+            context
         )
     })
 
     test('Group expressions', async function () {
         // Group expressions should run grouped expressions and return their result
         const [mock, environment] = testingEnvironment()
+        const context = { message: environment.commandContext.message }
         mock.mockResolvedValue(ASTString('result'))
         let result = await Interpreter['group'](
             Parser.parseOrUnreachable(
@@ -264,7 +271,7 @@ describe('Interpreter', function () {
                 result.kind === 'string' && result.value === 'result'
             ).toEqual(true)
         }
-        expect(mock).toHaveBeenNthCalledWith(1, { number: 1 }, {})
-        expect(mock).toHaveBeenNthCalledWith(2, { number: 2 }, {})
+        expect(mock).toHaveBeenNthCalledWith(1, { number: 1 }, context)
+        expect(mock).toHaveBeenNthCalledWith(2, { number: 2 }, context)
     })
 })

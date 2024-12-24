@@ -1,5 +1,5 @@
 import { Result, Results } from 'commons/lib/utils/result'
-import { LazyLocale } from '../localization/localization_manager'
+import type { LazyLocaleI } from '../localization/localization_manager'
 import { Interpreter, InterpreterEnvironment } from './language/interpreter'
 import { Tokenizer } from './language/tokenizer'
 import { Parser } from './language/parser'
@@ -9,8 +9,8 @@ export interface DSLError {
     line: number
     column: number
     sourceLine: string
-    errorMessage: LazyLocale
-    hint: LazyLocale
+    errorMessage: LazyLocaleI
+    hint: LazyLocaleI
 }
 
 export type PartialDSLError = Pick<DSLError, 'errorMessage' | 'hint'>

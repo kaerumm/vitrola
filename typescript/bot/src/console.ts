@@ -15,11 +15,13 @@ import { AsyncInitializer } from './types/initialization'
 import { Message, MessagePayload } from 'discord.js'
 import { paddingFor } from 'commons/lib/utils/string'
 import { PlayCommand } from './command/commands/music/play'
+import { generateDependencyReport } from '@discordjs/voice'
 
 async function start() {
     await using disposeStack = new AsyncDisposableStack()
     const logger = new ConsoleLogger('Console')
 
+    logger.info(generateDependencyReport())
     const localizationManager =
         await new LocalizationManagerInitializer().initialize({
             logger: new ConsoleLogger('LocalizationManager'),
@@ -143,6 +145,7 @@ export class Console {
                     {
                         aliasTrees,
                         commandManager: this.deps.commandManager,
+                        message,
                     }
                 )
                 if (Results.isErr(result)) {

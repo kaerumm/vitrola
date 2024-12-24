@@ -132,6 +132,7 @@ export class Bot {
                 {
                     aliasTrees,
                     commandManager: this.deps.commandManager,
+                    message,
                 }
             )
             if (Results.isErr(result)) {

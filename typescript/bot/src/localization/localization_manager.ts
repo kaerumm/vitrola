@@ -9,13 +9,8 @@ import type { FollowPath, ObjectKeyPaths } from 'commons/lib/types/objects.ts'
 import type { BotError } from 'commons/lib/utils/error.ts'
 import type { Logger } from 'commons/lib/log.ts'
 import type { AsyncInitializer } from '../types/initialization.ts'
-import {
-    LocaleEntry,
-    LocaleSubmodule,
-    modules,
-} from '../../locales/base/index.ts'
+import { LocaleSubmodule, modules } from '../../locales/base/index.ts'
 import { GenericCache } from 'commons/lib/data-structures/cache.ts'
-import { Option } from 'commons/lib/utils/option.ts'
 import { Results, type Result } from 'commons/lib/utils/result.ts'
 import * as fs from 'fs/promises'
 import * as path from 'path'
@@ -210,26 +205,11 @@ export class LocalizationManager {
 type StringOrLazyLocale<T> = T extends any[]
     ? {
           [Key in keyof T]: T[Key] extends string
-              ?
-                    | string
-                    | LazyLocale<
-                          KeysMatchingSubtype<BaseLocale, LocaleSubmodule>,
-                          ObjectKeyPaths<
-                              BaseLocale[KeysMatchingSubtype<
-                                  BaseLocale,
-                                  LocaleSubmodule
-                              >]['definitions']
-                          >
-                      >
+              ? string | LazyLocaleI
               : T[Key]
       }
     : undefined
 
-// keyof this must properly return keys instead of never
-declare const T: BaseLocale[KeysMatchingSubtype<
-    BaseLocale,
-    LocaleSubmodule
->]['definitions']
 /**
  * This class is meant to be used when the locale needs to be eventually resolved
  */
@@ -242,10 +222,7 @@ export class LazyLocale<
         BaseLocale[Module]['definitions']
     > = ObjectKeyPaths<BaseLocale[Module]['definitions']>,
 > {
-    private args: (
-        | string
-        | LazyLocale<KeysMatchingSubtype<BaseLocale, LocaleSubmodule>, any>
-    )[]
+    private args: (string | LazyLocale)[]
 
     constructor(
         private module: Module,
@@ -283,4 +260,13 @@ export class LazyLocale<
         }
         return localization as string
     }
+}
+
+// This interface simplifies the use of LazyLocale, since due to what seems like a typescript bug/weirdness, LazyLocale
+// is giving compilation errors when used in specific ways and I could not figure out how to solve that
+export interface LazyLocaleI {
+    resolve<Locale extends AvailableLocales>(
+        locale: Locale,
+        localizationManager: LocalizationManager
+    ): Promise<string>
 }

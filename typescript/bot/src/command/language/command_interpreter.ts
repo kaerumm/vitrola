@@ -145,7 +145,9 @@ export class CommandInterpreter {
             return parsedArguments
         }
         return Results.mapError(
-            await matched.definition.callback(parsedArguments, {}),
+            await matched.definition.callback(parsedArguments, {
+                message: environment.commandContext.message,
+            }),
             (partialDSLError) => ({
                 partialDSLError,
                 node: commandNode,

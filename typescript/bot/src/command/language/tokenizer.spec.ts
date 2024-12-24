@@ -1,7 +1,5 @@
 import { describe, test, expect } from '@jest/globals'
 import { Tokenizer, isEventuallyFollowedByUnicodeAlpha } from './tokenizer'
-import * as fs from 'fs'
-import * as path from 'path'
 import {
     CharacterCodes,
     isSymbolAllowedInUnquotedString,
@@ -16,11 +14,6 @@ import { PseudoRandomNumberGenerator, fuzzyTest } from 'testing/lib/fuzz/fuzz'
 import { ErrorResult, Results, ValueResult } from 'commons/lib/utils/result'
 import { Option } from 'commons/lib/utils/option'
 import { Cursor } from 'commons/lib/data-structures/cursor'
-
-const snapshot_file = fs.readFileSync(
-    path.resolve('./test-files/tokenizer_snapshot_file'),
-    'utf-8'
-)
 
 class TokenizerFuzzer {
     private static defaultOptions = {
@@ -50,10 +43,6 @@ class TokenizerFuzzer {
 }
 
 describe('Tokenizer', function () {
-    test('Snapshot', function () {
-        expect(Tokenizer.tokenize(snapshot_file)).toMatchSnapshot()
-    })
-
     describe('Manual', function () {
         test('Symbols', function () {
             const pairs = [

@@ -6,7 +6,7 @@ Connectives | "&&" "||"  "|" | ";" | Left
 Using EBNF
 
 expression : connective ;
-connective : unary (("&&" | "||" | "|") unary)* ;
+connective : primary (("&&" | "||" | "|") primary)* ;
 primary : command | grouping ;
 command : STRING* ;
 grouping : "("expression")" ;

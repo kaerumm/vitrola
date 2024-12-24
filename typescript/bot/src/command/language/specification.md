@@ -1,6 +1,6 @@
 ### Why?
 
-To learn how languages work, and to get an opportunity to work with new concepts
+To learn how programming languages work, and to get an opportunity to work with new concepts
 
 ### Objectives
 
