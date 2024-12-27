@@ -9,5 +9,9 @@ export const commands = {
         music_play_arguments_playlist_description:
             `If the url should be interpreted as a playlist` +
             `and should queue the videos of the playlist`,
+        ytdl_search_failed:
+            `Failed to fetch video information, it is not possible to` +
+            `play this video.`,
+        ytdl_search_failed_hint: `Notify Kaerum.`,
     },
 } satisfies LocaleSubmodule

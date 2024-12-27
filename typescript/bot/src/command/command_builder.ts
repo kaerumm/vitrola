@@ -49,7 +49,7 @@ type TransformArgumentDefinitionIntoArgumentDictionary<
 > = {
     [Value in Arguments[number] as Value['name']]:
         | (Value['optional'] extends true ? undefined : never)
-        | ReturnType<Value['parser']['parse']> extends Result<infer Type, any>
+        | ReturnType<Value['parser']['parse']> extends Result<[infer Type], any>
         ? Type
         : never
 }

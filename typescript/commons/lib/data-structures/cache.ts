@@ -84,7 +84,7 @@ export class GenericCache<T> implements Disposable {
     }
 
     set(key: string, value: T): void {
-        const node = this.cacheNodeObjectPool.create()
+        const node = this.cacheNodeObjectPool.create(null)
         node.value = value
         node.timestamp = this.nextExpirationTimestamp()
         this.values.set(key, node)

@@ -183,22 +183,7 @@ export type Join<
         : `${First}${Separator}${Join<Rest, Separator>}`
     : never
 
-type JoinTest = [
+export type JoinTest = [
     Expect<Equal<Join<['a', 'b'], '.'>, 'a.b'>>,
     Expect<Equal<Join<['a'], '.'>, 'a'>>,
-]
-
-export type Intercept<Union> = {
-    [Key in keyof Union]: Union[Key]
-}
-
-declare const T: Intercept<{ key: boolean } | { key_2: string }>
-
-type InterceptTest = [
-    Expect<
-        Equal<
-            Intercept<{ key: boolean } | { key_2: string }>,
-            { key: boolean; key_2: string }
-        >
-    >,
 ]

@@ -25,10 +25,10 @@ export class ObjectPool<T extends object> {
      * Returns an already allocated value if there is one available inside the pool, otherwise allocates
      * and returns a new one
      */
-    create(initializer: Option<(object: T) => void>): T {
+    create(on_create: Option<(object: T) => void>): T {
         let object = this.pool.pop() ?? this.initializer()
-        if (initializer) {
-            initializer(object)
+        if (on_create) {
+            on_create(object)
         }
         return object
     }

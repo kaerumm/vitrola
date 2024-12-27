@@ -16,6 +16,7 @@ import { Message, MessagePayload } from 'discord.js'
 import { paddingFor } from 'commons/lib/utils/string'
 import { PlayCommand } from './command/commands/music/play'
 import { generateDependencyReport } from '@discordjs/voice'
+import { YoutubeDLP } from './modules/youtube_dlp'
 
 async function start() {
     await using disposeStack = new AsyncDisposableStack()
@@ -41,6 +42,7 @@ async function start() {
         process.exit(1)
     }
 
+    const ytdl = new YoutubeDLP(new ConsoleLogger('Music'))
     const console = await new ConsoleInitializer().initialize({
         logger: new ConsoleLogger('Console'),
         localizationManager,
@@ -48,7 +50,10 @@ async function start() {
         commandManager: new CommandManager({
             commands: [
                 new PingCommand({ logger: new ConsoleLogger('PingCommand') }),
-                new PlayCommand({ logger: new ConsoleLogger('PlayCommand') }),
+                new PlayCommand({
+                    logger: new ConsoleLogger('PlayCommand'),
+                    ytdl,
+                }),
             ],
         }),
         configurationManager: new ConfigurationManager(),
