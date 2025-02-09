@@ -32,21 +32,67 @@ export class PlayCommand implements Command {
                 ),
             })
             .build(async function execute(args, context) {
-                // Search results does not return URL when searching by string
-                let search_result: Result<VideoData, PartialDSLError>
-                if (URL.canParse(args.url_or_search)) {
-                    search_result = await self.deps.ytdl.search_info({
-                        search_for: { url: args.url_or_search },
-                        playlist: args.playlist ?? false,
-                    })
-                } else {
-                    search_result = await self.deps.ytdl.search_info({
-                        search_for: { string: args.url_or_search },
-                        playlist: args.playlist ?? false,
-                    })
+                if (!context.message.guildId) {
+                    return {
+                        error: {
+                            errorMessage: LocalizationManager.lazy(
+                                'commands',
+                                'command_not_dm_description',
+                                undefined
+                            ),
+                            hint: LocalizationManager.lazy(
+                                'commands',
+                                'command_not_dm_hint',
+                                undefined
+                            ),
+                        },
+                    }
                 }
-                if (Results.isErr(search_result)) {
-                    return search_result
+                if (
+                    !context.message.member ||
+                    !context.message.member.voice.channelId
+                ) {
+                    return {
+                        error: {
+                            errorMessage: LocalizationManager.lazy(
+                                'commands',
+                                'music_play_user_not_in_voice_channel_description',
+                                undefined
+                            ),
+                            hint: LocalizationManager.lazy(
+                                'commands',
+                                'music_play_user_not_in_voice_channel_hint',
+                                undefined
+                            ),
+                        },
+                    }
+                }
+
+                const guildId = context.message.guildId
+                const voiceChannelId = context.message.member.voice.channelId
+
+                if (args.playlist) {
+                    console.log('Playlist')
+                    for await (const videoData of self.deps.ytdl.search_playlist(
+                        { url: args.url_or_search }
+                    )) {
+                    }
+                } else {
+                    console.log('Parse')
+                    let search_result: Result<VideoData, PartialDSLError>
+                    if (URL.canParse(args.url_or_search)) {
+                        search_result = await self.deps.ytdl.search_info({
+                            search_for: { url: args.url_or_search },
+                        })
+                    } else {
+                        search_result = await self.deps.ytdl.search_info({
+                            search_for: { string: args.url_or_search },
+                        })
+                    }
+                    console.log(search_result)
+                    if (Results.isErr(search_result)) {
+                        return search_result
+                    }
                 }
                 return Results.ok(ASTUnit)
             })

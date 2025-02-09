@@ -14,6 +14,7 @@
     },
     "scripts": {
         "start": "bun src/index.ts",
+        "dev": "bun --watch src/index.ts",
         "test": "bun test",
         "bundle": "bun run bundle:production",
         "bundle:production": "BUNDLETIME_ENV=production bun build --target bun --outdir ./build src/index.ts",

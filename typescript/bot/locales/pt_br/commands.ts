@@ -11,5 +11,9 @@ export const commands = {
             `e adicionar os vídeos da playlist na lista de músicas`,
         ytdl_search_failed: `Não foi possível obter as informações do vídeo pedido.`,
         ytdl_search_failed_hint: `Notifique Kaerum`,
+        music_play_user_not_in_voice_channel_description: `Para usar o comando play, você deve estar numa sala de voz.`,
+        music_play_user_not_in_voice_channel_hint: `Entre numa sala de voz e chame o comando play novamente.`,
+        command_not_dm_description: `Esse comando não pode ser usado em DMs.`,
+        command_not_dm_hint: `Utilize esse comando num canal de texto de uma guilda.`,
     },
 } satisfies LocaleSubmodule

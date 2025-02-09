@@ -8,6 +8,8 @@ import { AsyncDisposableStack } from 'commons/lib/utils/disposable'
 import { ConfigurationManager } from './configuration/configuration_manager'
 import { PingCommand } from './command/commands/ping'
 import { Commander } from './command/commander'
+import { PlayCommand } from './command/commands/music/play'
+import { YoutubeDLP } from './modules/youtube_dlp'
 
 const TOKEN_ENV_VAR = 'DISCORD_TOKEN'
 const TOKEN_DEV_ENV_VAR = 'DISCORD_DEV_TOKEN'
@@ -53,6 +55,10 @@ async function start() {
                 commands: [
                     new PingCommand({
                         logger: new ConsoleLogger('PingCommand'),
+                    }),
+                    new PlayCommand({
+                        logger: new ConsoleLogger('PlayCommand'),
+                        ytdl: new YoutubeDLP(new ConsoleLogger('YoutubeDLP')),
                     }),
                 ],
             }),
